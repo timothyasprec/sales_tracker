@@ -123,10 +123,40 @@ export const jobPostingAPI = {
   getBuilders: (id) => apiRequest(`/api/job-postings/${id}/builders`),
 };
 
+// Builder API calls
+export const builderAPI = {
+  getAllBuilders: (filters = {}) => {
+    const params = new URLSearchParams(filters);
+    return apiRequest(`/api/builders?${params}`);
+  },
+  
+  getBuilderById: (id) => apiRequest(`/api/builders/${id}`),
+  
+  createBuilder: (builderData) => 
+    apiRequest('/api/builders', {
+      method: 'POST',
+      body: JSON.stringify(builderData),
+    }),
+  
+  updateBuilder: (id, builderData) => 
+    apiRequest(`/api/builders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(builderData),
+    }),
+  
+  deleteBuilder: (id) => 
+    apiRequest(`/api/builders/${id}`, {
+      method: 'DELETE',
+    }),
+  
+  getAllCohorts: () => apiRequest('/api/builders/cohorts'),
+};
+
 export default {
   auth: authAPI,
   users: userAPI,
   outreach: outreachAPI,
   jobPostings: jobPostingAPI,
+  builders: builderAPI,
 };
 
