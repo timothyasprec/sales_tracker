@@ -107,6 +107,12 @@ const AdminDashboard = () => {
           <div className="admin__user">
             <span className="admin__user-name">{user?.name}</span>
             <button
+              onClick={() => navigate('/users')}
+              className="admin__button admin__button--secondary"
+            >
+              Manage Users
+            </button>
+            <button
               onClick={() => navigate('/dashboard')}
               className="admin__button admin__button--secondary"
             >

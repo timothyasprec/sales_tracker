@@ -22,12 +22,16 @@ const register = async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+    // Check if email should be auto-promoted to admin
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || [];
+    const shouldBeAdmin = adminEmails.includes(email.toLowerCase());
+    
     // Create user
     const newUser = await userQueries.createUser({
       name,
       email,
       password: hashedPassword,
-      role: role || 'staff'
+      role: shouldBeAdmin ? 'admin' : (role || 'staff')
     });
 
     // Generate JWT token

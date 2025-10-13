@@ -1,0 +1,268 @@
+/* User Management Styles - BEM Naming Convention */
+
+.user-management {
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+.user-management__header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-management__header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-management__title {
+  font-size: 28px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.user-management__nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-management__button {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.user-management__button--secondary {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.user-management__button--secondary:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.user-management__button--logout {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.user-management__button--logout:hover {
+  background-color: rgba(255, 77, 77, 0.3);
+}
+
+.user-management__main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px;
+}
+
+.user-management__content {
+  background: white;
+  border-radius: 8px;
+  padding: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.user-management__header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.user-management__header-row h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #1e293b;
+}
+
+.user-management__count {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+}
+
+.user-management__error {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.user-management__loading {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+}
+
+.user-management__table-container {
+  overflow-x: auto;
+}
+
+.user-management__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.user-management__table thead {
+  background-color: #f8fafc;
+}
+
+.user-management__table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #334155;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.user-management__table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #475569;
+}
+
+.user-management__table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.user-management__empty {
+  text-align: center;
+  padding: 40px !important;
+  color: #94a3b8;
+}
+
+.user-management__you-badge {
+  display: inline-block;
+  background-color: #e0e7ff;
+  color: #4338ca;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.user-management__role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.user-management__role-badge--admin {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.user-management__role-badge--staff {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.user-management__status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.user-management__status-badge--active {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.user-management__status-badge--inactive {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.user-management__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.user-management__action-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.user-management__action-btn--promote {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.user-management__action-btn--promote:hover {
+  background-color: #fde68a;
+}
+
+.user-management__action-btn--demote {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.user-management__action-btn--demote:hover {
+  background-color: #d1d5db;
+}
+
+.user-management__action-btn--activate {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.user-management__action-btn--activate:hover {
+  background-color: #a7f3d0;
+}
+
+.user-management__action-btn--deactivate {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.user-management__action-btn--deactivate:hover {
+  background-color: #fecaca;
+}
+
+@media (max-width: 768px) {
+  .user-management__table {
+    font-size: 12px;
+  }
+
+  .user-management__table th,
+  .user-management__table td {
+    padding: 8px 6px;
+  }
+
+  .user-management__action-btn {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+}
+
