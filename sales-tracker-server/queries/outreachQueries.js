@@ -53,21 +53,29 @@ const createOutreach = async (outreachData) => {
     staff_user_id,
     contact_name,
     contact_title,
+    contact_email,
+    contact_phone,
     company_name,
     linkedin_url,
     contact_method,
     outreach_date,
+    lead_temperature,
     status,
     notes,
-    response_notes
+    response_notes,
+    stage,
+    ownership,
+    role_consideration,
+    job_description_url
   } = outreachData;
 
   const query = `
     INSERT INTO outreach (
-      staff_user_id, contact_name, contact_title, company_name,
-      linkedin_url, contact_method, outreach_date, status, notes, response_notes
+      staff_user_id, contact_name, contact_title, contact_email, contact_phone,
+      company_name, linkedin_url, contact_method, outreach_date, lead_temperature,
+      status, notes, response_notes, stage, ownership, role_consideration, job_description_url
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
     RETURNING *
   `;
 
@@ -75,13 +83,20 @@ const createOutreach = async (outreachData) => {
     staff_user_id,
     contact_name,
     contact_title,
+    contact_email,
+    contact_phone,
     company_name,
     linkedin_url,
     contact_method,
     outreach_date,
+    lead_temperature,
     status,
     notes,
-    response_notes
+    response_notes,
+    stage,
+    ownership,
+    role_consideration,
+    job_description_url
   ];
 
   const result = await pool.query(query, values);
@@ -96,8 +111,10 @@ const updateOutreach = async (id, updateData) => {
 
   // Only include fields that are provided
   const allowedFields = [
-    'contact_name', 'contact_title', 'company_name', 'linkedin_url',
-    'contact_method', 'outreach_date', 'status', 'notes', 'response_notes'
+    'contact_name', 'contact_title', 'contact_email', 'contact_phone',
+    'company_name', 'linkedin_url', 'contact_method', 'outreach_date',
+    'lead_temperature', 'status', 'notes', 'response_notes', 'stage',
+    'ownership', 'role_consideration', 'job_description_url'
   ];
 
   allowedFields.forEach(field => {
