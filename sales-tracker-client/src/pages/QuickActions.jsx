@@ -17,15 +17,15 @@ const QuickActions = () => {
 
   // Form states
   const [newLeadForm, setNewLeadForm] = useState({
+    lead_type: 'contact',
     company_name: '',
     contact_name: '',
     contact_title: '',
     contact_email: '',
-    contact_phone: '',
+    linkedin_url: '',
     outreach_date: new Date().toISOString().split('T')[0],
-    lead_temperature: 'warm',
-    role_consideration: '',
-    job_description_url: '',
+    lead_temperature: 'cold',
+    source: 'personal',
     stage: 'Initial Outreach',
     ownership: user?.name || '',
     notes: ''
@@ -35,8 +35,9 @@ const QuickActions = () => {
     search: '',
     selectedLead: null,
     stage: '',
+    lead_temperature: '',
     notes: '',
-    attachment: null
+    next_steps: ''
   });
 
   const [newBuilderForm, setNewBuilderForm] = useState({
@@ -84,7 +85,8 @@ const QuickActions = () => {
     if (updateLeadForm.search.length > 1) {
       const filtered = allLeads.filter(lead =>
         lead.company_name?.toLowerCase().includes(updateLeadForm.search.toLowerCase()) ||
-        lead.contact_name?.toLowerCase().includes(updateLeadForm.search.toLowerCase())
+        lead.contact_name?.toLowerCase().includes(updateLeadForm.search.toLowerCase()) ||
+        lead.contact_email?.toLowerCase().includes(updateLeadForm.search.toLowerCase())
       );
       setLeadSearchResults(filtered.slice(0, 5));
     } else {
@@ -102,6 +104,45 @@ const QuickActions = () => {
     setTimeout(() => setMessage({ type: '', text: '' }), 4000);
   };
 
+  const closeModal = () => {
+    setActiveAction(null);
+    // Reset forms
+    setNewLeadForm({
+      lead_type: 'contact',
+      company_name: '',
+      contact_name: '',
+      contact_title: '',
+      contact_email: '',
+      linkedin_url: '',
+      outreach_date: new Date().toISOString().split('T')[0],
+      lead_temperature: 'cold',
+      source: 'personal',
+      stage: 'Initial Outreach',
+      ownership: user?.name || '',
+      notes: ''
+    });
+    setUpdateLeadForm({
+      search: '',
+      selectedLead: null,
+      stage: '',
+      lead_temperature: '',
+      notes: '',
+      next_steps: ''
+    });
+    setNewBuilderForm({
+      name: '',
+      cohort: '',
+      email: '',
+      linkedin_url: '',
+      portfolio_url: '',
+      years_experience: '',
+      education: '',
+      aligned_sector: '',
+      role: '',
+      skills: ''
+    });
+  };
+
   // Add New Lead
   const handleAddNewLead = async (e) => {
     e.preventDefault();
@@ -109,21 +150,7 @@ const QuickActions = () => {
     try {
       await outreachAPI.createOutreach(newLeadForm);
       showMessage('success', 'New lead added successfully!');
-      setNewLeadForm({
-        company_name: '',
-        contact_name: '',
-        contact_title: '',
-        contact_email: '',
-        contact_phone: '',
-        outreach_date: new Date().toISOString().split('T')[0],
-        lead_temperature: 'warm',
-        role_consideration: '',
-        job_description_url: '',
-        stage: 'Initial Outreach',
-        ownership: user?.name || '',
-        notes: ''
-      });
-      setActiveAction(null);
+      closeModal();
       fetchAllLeads(); // Refresh leads
     } catch (error) {
       showMessage('error', 'Failed to add lead. Please try again.');
@@ -145,21 +172,15 @@ const QuickActions = () => {
     try {
       const updateData = {
         stage: updateLeadForm.stage,
+        lead_temperature: updateLeadForm.lead_temperature,
         notes: updateLeadForm.selectedLead.notes 
-          ? `${updateLeadForm.selectedLead.notes}\n\n[${new Date().toLocaleDateString()}] ${updateLeadForm.notes}`
-          : updateLeadForm.notes
+          ? `${updateLeadForm.selectedLead.notes}\n\n[${new Date().toLocaleDateString()}] ${updateLeadForm.notes}\nNext Steps: ${updateLeadForm.next_steps}`
+          : `${updateLeadForm.notes}\nNext Steps: ${updateLeadForm.next_steps}`
       };
 
       await outreachAPI.updateOutreach(updateLeadForm.selectedLead.id, updateData);
       showMessage('success', 'Lead status updated successfully!');
-      setUpdateLeadForm({
-        search: '',
-        selectedLead: null,
-        stage: '',
-        notes: '',
-        attachment: null
-      });
-      setActiveAction(null);
+      closeModal();
       fetchAllLeads(); // Refresh leads
     } catch (error) {
       showMessage('error', 'Failed to update lead. Please try again.');
@@ -176,19 +197,7 @@ const QuickActions = () => {
     try {
       await builderAPI.createBuilder(newBuilderForm);
       showMessage('success', 'New builder added successfully!');
-      setNewBuilderForm({
-        name: '',
-        cohort: '',
-        email: '',
-        linkedin_url: '',
-        portfolio_url: '',
-        years_experience: '',
-        education: '',
-        aligned_sector: '',
-        role: '',
-        skills: ''
-      });
-      setActiveAction(null);
+      closeModal();
     } catch (error) {
       showMessage('error', 'Failed to add builder. Please try again.');
       console.error('Error adding builder:', error);
@@ -289,300 +298,304 @@ const QuickActions = () => {
           )}
 
           {/* Action Cards */}
-          {!activeAction && (
-            <div className="quick-actions__cards">
-              {/* Add New Lead Card */}
-              <button
-                className="quick-actions__card quick-actions__card--blue"
-                onClick={() => setActiveAction('newLead')}
-              >
-                <div className="quick-actions__card-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <h3 className="quick-actions__card-title">Add New Lead</h3>
-                <p className="quick-actions__card-description">Create a new contact or job posting lead</p>
-              </button>
+          <div className="quick-actions__cards">
+            {/* Add New Lead Card */}
+            <button
+              className="quick-actions__card quick-actions__card--blue"
+              onClick={() => setActiveAction('newLead')}
+            >
+              <div className="quick-actions__card-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <h3 className="quick-actions__card-title">Add New Lead</h3>
+              <p className="quick-actions__card-description">Create a new contact or job posting lead</p>
+            </button>
 
-              {/* Update Lead Status Card */}
-              <button
-                className="quick-actions__card quick-actions__card--gray"
-                onClick={() => setActiveAction('updateLead')}
-              >
-                <div className="quick-actions__card-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <h3 className="quick-actions__card-title">Update Lead Status</h3>
-                <p className="quick-actions__card-description">Log conversations and update pipeline</p>
-              </button>
+            {/* Update Lead Status Card */}
+            <button
+              className="quick-actions__card quick-actions__card--gray"
+              onClick={() => setActiveAction('updateLead')}
+            >
+              <div className="quick-actions__card-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h3 className="quick-actions__card-title">Update Lead Status</h3>
+              <p className="quick-actions__card-description">Log conversations and update pipeline</p>
+            </button>
 
-              {/* Add Builder Card */}
-              <button
-                className="quick-actions__card quick-actions__card--purple"
-                onClick={() => setActiveAction('newBuilder')}
-              >
-                <div className="quick-actions__card-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    <circle cx="8.5" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M20 8v6M23 11h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <h3 className="quick-actions__card-title">Add Builder</h3>
-                <p className="quick-actions__card-description">Create a new Builder profile</p>
-              </button>
-            </div>
-          )}
+            {/* Add Builder Card */}
+            <button
+              className="quick-actions__card quick-actions__card--purple"
+              onClick={() => setActiveAction('newBuilder')}
+            >
+              <div className="quick-actions__card-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <circle cx="8.5" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M20 8v6M23 11h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <h3 className="quick-actions__card-title">Add Builder</h3>
+              <p className="quick-actions__card-description">Create a new Builder profile</p>
+            </button>
+          </div>
+        </div>
+      </main>
 
-          {/* Add New Lead Form */}
-          {activeAction === 'newLead' && (
-            <div className="quick-actions__form-container">
-              <button
-                className="quick-actions__back"
-                onClick={() => setActiveAction(null)}
-              >
-                ← Back to Actions
-              </button>
+      {/* Modal Overlay */}
+      {activeAction && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={closeModal}>×</button>
 
-              <form className="quick-actions__form" onSubmit={handleAddNewLead}>
-                <h3 className="quick-actions__form-title">Add New Lead</h3>
+            {/* Add New Lead Modal */}
+            {activeAction === 'newLead' && (
+              <form className="modal-form" onSubmit={handleAddNewLead}>
+                <h2 className="modal-title">Add New Lead</h2>
 
-                <div className="quick-actions__form-grid">
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Contact Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newLeadForm.contact_name}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, contact_name: e.target.value})}
-                      className="quick-actions__input"
-                      placeholder="John Doe"
-                    />
+                {/* Lead Type */}
+                <div className="form-section">
+                  <label className="form-label">Lead Type</label>
+                  <div className="button-group">
+                    <button
+                      type="button"
+                      className={`button-option ${newLeadForm.lead_type === 'contact' ? 'button-option--active' : ''}`}
+                      onClick={() => setNewLeadForm({...newLeadForm, lead_type: 'contact'})}
+                    >
+                      <div className="button-option__title">Contact Outreach</div>
+                      <div className="button-option__subtitle">Individual contact at a company</div>
+                    </button>
+                    <button
+                      type="button"
+                      className={`button-option ${newLeadForm.lead_type === 'job' ? 'button-option--active' : ''}`}
+                      onClick={() => setNewLeadForm({...newLeadForm, lead_type: 'job'})}
+                    >
+                      <div className="button-option__title">Job Posting</div>
+                      <div className="button-option__subtitle">Specific job opportunity</div>
+                    </button>
                   </div>
+                </div>
 
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Company *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newLeadForm.company_name}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, company_name: e.target.value})}
-                      className="quick-actions__input"
-                      placeholder="Acme Corp"
-                    />
-                  </div>
+                {/* Contact Name */}
+                <div className="form-section">
+                  <label className="form-label">Contact Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newLeadForm.contact_name}
+                    onChange={(e) => setNewLeadForm({...newLeadForm, contact_name: e.target.value})}
+                    className="form-input"
+                    placeholder="e.g., Sarah Chen"
+                  />
+                </div>
 
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Contact Title</label>
+                {/* Company */}
+                <div className="form-section">
+                  <label className="form-label">Company *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newLeadForm.company_name}
+                    onChange={(e) => setNewLeadForm({...newLeadForm, company_name: e.target.value})}
+                    className="form-input"
+                    placeholder="e.g., TechCorp Inc."
+                  />
+                </div>
+
+                {/* Role/Title and Email */}
+                <div className="form-row">
+                  <div className="form-section">
+                    <label className="form-label">Role/Title</label>
                     <input
                       type="text"
                       value={newLeadForm.contact_title}
                       onChange={(e) => setNewLeadForm({...newLeadForm, contact_title: e.target.value})}
-                      className="quick-actions__input"
-                      placeholder="HR Manager"
+                      className="form-input"
+                      placeholder="e.g., VP of Engineering"
                     />
                   </div>
-
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Contact Email</label>
+                  <div className="form-section">
+                    <label className="form-label">Email</label>
                     <input
                       type="email"
                       value={newLeadForm.contact_email}
                       onChange={(e) => setNewLeadForm({...newLeadForm, contact_email: e.target.value})}
-                      className="quick-actions__input"
-                      placeholder="john@acme.com"
-                    />
-                  </div>
-
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Contact Phone</label>
-                    <input
-                      type="tel"
-                      value={newLeadForm.contact_phone}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, contact_phone: e.target.value})}
-                      className="quick-actions__input"
-                      placeholder="(555) 123-4567"
-                    />
-                  </div>
-
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Date of Outreach *</label>
-                    <input
-                      type="date"
-                      required
-                      value={newLeadForm.outreach_date}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, outreach_date: e.target.value})}
-                      className="quick-actions__input"
-                    />
-                  </div>
-
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Lead Temperature *</label>
-                    <select
-                      required
-                      value={newLeadForm.lead_temperature}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, lead_temperature: e.target.value})}
-                      className="quick-actions__select"
-                    >
-                      <option value="hot">Hot</option>
-                      <option value="warm">Warm</option>
-                      <option value="cold">Cold</option>
-                    </select>
-                  </div>
-
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Current Stage *</label>
-                    <select
-                      required
-                      value={newLeadForm.stage}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, stage: e.target.value})}
-                      className="quick-actions__select"
-                    >
-                      {stages.map(stage => (
-                        <option key={stage} value={stage}>{stage}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Role for Consideration</label>
-                    <input
-                      type="text"
-                      value={newLeadForm.role_consideration}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, role_consideration: e.target.value})}
-                      className="quick-actions__input"
-                      placeholder="Software Engineer"
-                    />
-                  </div>
-
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Ownership *</label>
-                    <select
-                      required
-                      value={newLeadForm.ownership}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, ownership: e.target.value})}
-                      className="quick-actions__select"
-                    >
-                      {staffMembers.map(staff => (
-                        <option key={staff.id} value={staff.name}>{staff.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="quick-actions__form-group quick-actions__form-group--full">
-                    <label className="quick-actions__label">Job Description URL (Optional)</label>
-                    <input
-                      type="url"
-                      value={newLeadForm.job_description_url}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, job_description_url: e.target.value})}
-                      className="quick-actions__input"
-                      placeholder="https://..."
-                    />
-                  </div>
-
-                  <div className="quick-actions__form-group quick-actions__form-group--full">
-                    <label className="quick-actions__label">Additional Notes (Optional)</label>
-                    <textarea
-                      value={newLeadForm.notes}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, notes: e.target.value})}
-                      className="quick-actions__textarea"
-                      placeholder="Describe your relationship, more about the role, and any relevant details..."
-                      rows="4"
+                      className="form-input"
+                      placeholder="email@company.com"
                     />
                   </div>
                 </div>
 
-                <div className="quick-actions__form-actions">
-                  <button
-                    type="button"
-                    onClick={() => setActiveAction(null)}
-                    className="quick-actions__button quick-actions__button--secondary"
+                {/* LinkedIn URL */}
+                <div className="form-section">
+                  <label className="form-label">LinkedIn URL</label>
+                  <input
+                    type="url"
+                    value={newLeadForm.linkedin_url}
+                    onChange={(e) => setNewLeadForm({...newLeadForm, linkedin_url: e.target.value})}
+                    className="form-input"
+                    placeholder="https://linkedin.com/in/..."
+                  />
+                </div>
+
+                {/* Lead Temperature */}
+                <div className="form-section">
+                  <label className="form-label">Lead Temperature *</label>
+                  <div className="button-group button-group--three">
+                    <button
+                      type="button"
+                      className={`button-temp ${newLeadForm.lead_temperature === 'cold' ? 'button-temp--active button-temp--cold' : ''}`}
+                      onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'cold'})}
+                    >
+                      Cold
+                    </button>
+                    <button
+                      type="button"
+                      className={`button-temp ${newLeadForm.lead_temperature === 'warm' ? 'button-temp--active button-temp--warm' : ''}`}
+                      onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'warm'})}
+                    >
+                      Warm
+                    </button>
+                    <button
+                      type="button"
+                      className={`button-temp ${newLeadForm.lead_temperature === 'hot' ? 'button-temp--active button-temp--hot' : ''}`}
+                      onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'hot'})}
+                    >
+                      Hot
+                    </button>
+                  </div>
+                </div>
+
+                {/* Source */}
+                <div className="form-section">
+                  <label className="form-label">Source *</label>
+                  <div className="button-group">
+                    <button
+                      type="button"
+                      className={`button-source ${newLeadForm.source === 'personal' ? 'button-source--active' : ''}`}
+                      onClick={() => setNewLeadForm({...newLeadForm, source: 'personal'})}
+                    >
+                      Personal Network
+                    </button>
+                    <button
+                      type="button"
+                      className={`button-source ${newLeadForm.source === 'professional' ? 'button-source--active' : ''}`}
+                      onClick={() => setNewLeadForm({...newLeadForm, source: 'professional'})}
+                    >
+                      Professional Network
+                    </button>
+                  </div>
+                </div>
+
+                {/* Initial Status */}
+                <div className="form-section">
+                  <label className="form-label">Initial Status</label>
+                  <select
+                    value={newLeadForm.stage}
+                    onChange={(e) => setNewLeadForm({...newLeadForm, stage: e.target.value})}
+                    className="form-select"
                   >
+                    {stages.map(stage => (
+                      <option key={stage} value={stage}>{stage}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Notes */}
+                <div className="form-section">
+                  <label className="form-label">Notes</label>
+                  <textarea
+                    value={newLeadForm.notes}
+                    onChange={(e) => setNewLeadForm({...newLeadForm, notes: e.target.value})}
+                    className="form-textarea"
+                    rows="4"
+                    placeholder="Add any relevant notes..."
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="modal-actions">
+                  <button type="button" onClick={closeModal} className="btn-secondary">
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="quick-actions__button quick-actions__button--primary"
-                  >
+                  <button type="submit" disabled={loading} className="btn-primary">
                     {loading ? 'Adding...' : 'Add Lead'}
                   </button>
                 </div>
               </form>
-            </div>
-          )}
+            )}
 
-          {/* Update Lead Form */}
-          {activeAction === 'updateLead' && (
-            <div className="quick-actions__form-container">
-              <button
-                className="quick-actions__back"
-                onClick={() => setActiveAction(null)}
-              >
-                ← Back to Actions
-              </button>
+            {/* Update Lead Status Modal */}
+            {activeAction === 'updateLead' && (
+              <form className="modal-form" onSubmit={handleUpdateLead}>
+                <h2 className="modal-title">Update Lead Status</h2>
 
-              <form className="quick-actions__form" onSubmit={handleUpdateLead}>
-                <h3 className="quick-actions__form-title">Update Lead Status</h3>
-
-                <div className="quick-actions__form-group quick-actions__form-group--full">
-                  <label className="quick-actions__label">Search for Lead *</label>
-                  <div className="quick-actions__search-container">
+                {/* Search */}
+                <div className="form-section">
+                  <label className="form-label">Select Contact/Lead</label>
+                  <div className="search-container">
+                    <svg className="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
                     <input
                       type="text"
                       value={updateLeadForm.search}
-                      onChange={(e) => setUpdateLeadForm({...updateLeadForm, search: e.target.value})}
-                      className="quick-actions__input"
-                      placeholder="Type person's name or company..."
+                      onChange={(e) => setUpdateLeadForm({...updateLeadForm, search: e.target.value, selectedLead: null})}
+                      className="form-input form-input--search"
+                      placeholder="Search by name, company, or email..."
                     />
-                    {leadSearchResults.length > 0 && (
-                      <div className="quick-actions__dropdown">
-                        {leadSearchResults.map(lead => (
-                          <button
-                            key={lead.id}
-                            type="button"
-                            className="quick-actions__dropdown-item"
-                            onClick={() => {
-                              setUpdateLeadForm({
-                                ...updateLeadForm,
-                                selectedLead: lead,
-                                stage: lead.stage || '',
-                                search: `${lead.contact_name} - ${lead.company_name}`
-                              });
-                              setLeadSearchResults([]);
-                            }}
-                          >
-                            <div className="quick-actions__dropdown-name">{lead.contact_name}</div>
-                            <div className="quick-actions__dropdown-company">{lead.company_name}</div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
 
+                {/* Recent Contacts or Search Results */}
+                {!updateLeadForm.selectedLead && (
+                  <div className="form-section">
+                    <div className="contacts-label">
+                      {updateLeadForm.search ? 'SEARCH RESULTS' : 'RECENT CONTACTS'}
+                    </div>
+                    <div className="contacts-list">
+                      {(updateLeadForm.search ? leadSearchResults : allLeads.slice(0, 3)).map(lead => (
+                        <button
+                          key={lead.id}
+                          type="button"
+                          className="contact-item"
+                          onClick={() => {
+                            setUpdateLeadForm({
+                              ...updateLeadForm,
+                              selectedLead: lead,
+                              stage: lead.stage || 'Initial Outreach',
+                              lead_temperature: lead.lead_temperature || 'warm',
+                              search: lead.contact_name
+                            });
+                          }}
+                        >
+                          <div className="contact-item__name">{lead.contact_name}</div>
+                          <div className="contact-item__company">{lead.company_name} - {lead.stage}</div>
+                        </button>
+                      ))}
+                      {((updateLeadForm.search && leadSearchResults.length === 0) || (!updateLeadForm.search && allLeads.length === 0)) && (
+                        <div className="contacts-empty">No contacts found</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected Lead Form */}
                 {updateLeadForm.selectedLead && (
                   <>
-                    <div className="quick-actions__selected-lead">
-                      <h4 className="quick-actions__selected-title">Selected Lead</h4>
-                      <div className="quick-actions__selected-info">
-                        <p><strong>Contact:</strong> {updateLeadForm.selectedLead.contact_name}</p>
-                        <p><strong>Company:</strong> {updateLeadForm.selectedLead.company_name}</p>
-                        <p><strong>Current Stage:</strong> {updateLeadForm.selectedLead.stage}</p>
-                      </div>
-                    </div>
-
-                    <div className="quick-actions__form-group">
-                      <label className="quick-actions__label">Update Stage *</label>
+                    {/* New Status */}
+                    <div className="form-section">
+                      <label className="form-label">New Status *</label>
                       <select
                         required
                         value={updateLeadForm.stage}
                         onChange={(e) => setUpdateLeadForm({...updateLeadForm, stage: e.target.value})}
-                        className="quick-actions__select"
+                        className="form-select"
                       >
                         {stages.map(stage => (
                           <option key={stage} value={stage}>{stage}</option>
@@ -590,128 +603,139 @@ const QuickActions = () => {
                       </select>
                     </div>
 
-                    <div className="quick-actions__form-group quick-actions__form-group--full">
-                      <label className="quick-actions__label">Add Notes *</label>
+                    {/* Update Lead Temperature */}
+                    <div className="form-section">
+                      <label className="form-label">Update Lead Temperature</label>
+                      <div className="button-group button-group--three">
+                        <button
+                          type="button"
+                          className={`button-temp ${updateLeadForm.lead_temperature === 'cold' ? 'button-temp--active button-temp--cold' : ''}`}
+                          onClick={() => setUpdateLeadForm({...updateLeadForm, lead_temperature: 'cold'})}
+                        >
+                          Cold
+                        </button>
+                        <button
+                          type="button"
+                          className={`button-temp ${updateLeadForm.lead_temperature === 'warm' ? 'button-temp--active button-temp--warm' : ''}`}
+                          onClick={() => setUpdateLeadForm({...updateLeadForm, lead_temperature: 'warm'})}
+                        >
+                          Warm
+                        </button>
+                        <button
+                          type="button"
+                          className={`button-temp ${updateLeadForm.lead_temperature === 'hot' ? 'button-temp--active button-temp--hot' : ''}`}
+                          onClick={() => setUpdateLeadForm({...updateLeadForm, lead_temperature: 'hot'})}
+                        >
+                          Hot
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Activity Notes */}
+                    <div className="form-section">
+                      <label className="form-label">Activity Notes *</label>
                       <textarea
                         required
                         value={updateLeadForm.notes}
                         onChange={(e) => setUpdateLeadForm({...updateLeadForm, notes: e.target.value})}
-                        className="quick-actions__textarea"
-                        placeholder="Describe the update, email sent, conversation details, etc..."
+                        className="form-textarea"
                         rows="4"
+                        placeholder="What happened? Record details about the conversation, meeting, or outreach..."
                       />
                     </div>
 
-                    <div className="quick-actions__form-group quick-actions__form-group--full">
-                      <label className="quick-actions__label">Attach Email/Document (Optional)</label>
+                    {/* Next Steps */}
+                    <div className="form-section">
+                      <label className="form-label">Next Steps</label>
                       <input
-                        type="file"
-                        onChange={(e) => setUpdateLeadForm({...updateLeadForm, attachment: e.target.files[0]})}
-                        className="quick-actions__file-input"
-                        accept=".pdf,.doc,.docx,.txt,.eml"
+                        type="text"
+                        value={updateLeadForm.next_steps}
+                        onChange={(e) => setUpdateLeadForm({...updateLeadForm, next_steps: e.target.value})}
+                        className="form-input"
+                        placeholder="e.g., Follow up next week, Send resources, Schedule demo"
                       />
-                      <p className="quick-actions__help-text">Upload email or document related to this update</p>
                     </div>
                   </>
                 )}
 
-                <div className="quick-actions__form-actions">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUpdateLeadForm({
-                        search: '',
-                        selectedLead: null,
-                        stage: '',
-                        notes: '',
-                        attachment: null
-                      });
-                      setActiveAction(null);
-                    }}
-                    className="quick-actions__button quick-actions__button--secondary"
-                  >
+                {/* Actions */}
+                <div className="modal-actions">
+                  <button type="button" onClick={closeModal} className="btn-secondary">
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={loading || !updateLeadForm.selectedLead}
-                    className="quick-actions__button quick-actions__button--primary"
+                  <button 
+                    type="submit" 
+                    disabled={loading || !updateLeadForm.selectedLead} 
+                    className="btn-primary"
                   >
-                    {loading ? 'Updating...' : 'Update Lead'}
+                    {loading ? 'Updating...' : 'Update Status'}
                   </button>
                 </div>
               </form>
-            </div>
-          )}
+            )}
 
-          {/* Add Builder Form */}
-          {activeAction === 'newBuilder' && (
-            <div className="quick-actions__form-container">
-              <button
-                className="quick-actions__back"
-                onClick={() => setActiveAction(null)}
-              >
-                ← Back to Actions
-              </button>
+            {/* Add Builder Modal */}
+            {activeAction === 'newBuilder' && (
+              <form className="modal-form" onSubmit={handleAddBuilder}>
+                <h2 className="modal-title">Add New Builder</h2>
 
-              <form className="quick-actions__form" onSubmit={handleAddBuilder}>
-                <h3 className="quick-actions__form-title">Add New Builder</h3>
-
-                <div className="quick-actions__form-grid">
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Full Name *</label>
+                <div className="form-row">
+                  <div className="form-section">
+                    <label className="form-label">Full Name *</label>
                     <input
                       type="text"
                       required
                       value={newBuilderForm.name}
                       onChange={(e) => setNewBuilderForm({...newBuilderForm, name: e.target.value})}
-                      className="quick-actions__input"
+                      className="form-input"
                       placeholder="Jane Smith"
                     />
                   </div>
-
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Cohort *</label>
+                  <div className="form-section">
+                    <label className="form-label">Cohort *</label>
                     <input
                       type="text"
                       required
                       value={newBuilderForm.cohort}
                       onChange={(e) => setNewBuilderForm({...newBuilderForm, cohort: e.target.value})}
-                      className="quick-actions__input"
+                      className="form-input"
                       placeholder="Cohort 1"
                     />
                   </div>
+                </div>
 
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Pursuit Email *</label>
+                <div className="form-row">
+                  <div className="form-section">
+                    <label className="form-label">Pursuit Email *</label>
                     <input
                       type="email"
                       required
                       value={newBuilderForm.email}
                       onChange={(e) => setNewBuilderForm({...newBuilderForm, email: e.target.value})}
-                      className="quick-actions__input"
+                      className="form-input"
                       placeholder="jane@pursuit.org"
                     />
                   </div>
-
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Years of Experience</label>
+                  <div className="form-section">
+                    <label className="form-label">Years of Experience</label>
                     <input
                       type="number"
                       value={newBuilderForm.years_experience}
                       onChange={(e) => setNewBuilderForm({...newBuilderForm, years_experience: e.target.value})}
-                      className="quick-actions__input"
+                      className="form-input"
                       placeholder="2"
                       min="0"
                     />
                   </div>
+                </div>
 
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Education Level</label>
+                <div className="form-row">
+                  <div className="form-section">
+                    <label className="form-label">Education Level</label>
                     <select
                       value={newBuilderForm.education}
                       onChange={(e) => setNewBuilderForm({...newBuilderForm, education: e.target.value})}
-                      className="quick-actions__select"
+                      className="form-select"
                     >
                       <option value="">Select Education</option>
                       {educationLevels.map(level => (
@@ -719,13 +743,12 @@ const QuickActions = () => {
                       ))}
                     </select>
                   </div>
-
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Aligned Sector</label>
+                  <div className="form-section">
+                    <label className="form-label">Aligned Sector</label>
                     <select
                       value={newBuilderForm.aligned_sector}
                       onChange={(e) => setNewBuilderForm({...newBuilderForm, aligned_sector: e.target.value})}
-                      className="quick-actions__select"
+                      className="form-select"
                     >
                       <option value="">Select Sector</option>
                       {sectors.map(sector => (
@@ -733,74 +756,67 @@ const QuickActions = () => {
                       ))}
                     </select>
                   </div>
+                </div>
 
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">Builder's Desired Role *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newBuilderForm.role}
-                      onChange={(e) => setNewBuilderForm({...newBuilderForm, role: e.target.value})}
-                      className="quick-actions__input"
-                      placeholder="Full-Stack Developer"
-                    />
-                  </div>
+                <div className="form-section">
+                  <label className="form-label">Builder's Desired Role *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newBuilderForm.role}
+                    onChange={(e) => setNewBuilderForm({...newBuilderForm, role: e.target.value})}
+                    className="form-input"
+                    placeholder="Full-Stack Developer"
+                  />
+                </div>
 
-                  <div className="quick-actions__form-group">
-                    <label className="quick-actions__label">LinkedIn Profile</label>
+                <div className="form-row">
+                  <div className="form-section">
+                    <label className="form-label">LinkedIn Profile</label>
                     <input
                       type="url"
                       value={newBuilderForm.linkedin_url}
                       onChange={(e) => setNewBuilderForm({...newBuilderForm, linkedin_url: e.target.value})}
-                      className="quick-actions__input"
+                      className="form-input"
                       placeholder="https://linkedin.com/in/..."
                     />
                   </div>
-
-                  <div className="quick-actions__form-group quick-actions__form-group--full">
-                    <label className="quick-actions__label">Resume URL</label>
+                  <div className="form-section">
+                    <label className="form-label">Resume URL</label>
                     <input
                       type="url"
                       value={newBuilderForm.portfolio_url}
                       onChange={(e) => setNewBuilderForm({...newBuilderForm, portfolio_url: e.target.value})}
-                      className="quick-actions__input"
+                      className="form-input"
                       placeholder="https://..."
-                    />
-                  </div>
-
-                  <div className="quick-actions__form-group quick-actions__form-group--full">
-                    <label className="quick-actions__label">Skills & Technologies</label>
-                    <textarea
-                      value={newBuilderForm.skills}
-                      onChange={(e) => setNewBuilderForm({...newBuilderForm, skills: e.target.value})}
-                      className="quick-actions__textarea"
-                      placeholder="React, Node.js, PostgreSQL, AWS, etc."
-                      rows="3"
                     />
                   </div>
                 </div>
 
-                <div className="quick-actions__form-actions">
-                  <button
-                    type="button"
-                    onClick={() => setActiveAction(null)}
-                    className="quick-actions__button quick-actions__button--secondary"
-                  >
+                <div className="form-section">
+                  <label className="form-label">Skills & Technologies</label>
+                  <textarea
+                    value={newBuilderForm.skills}
+                    onChange={(e) => setNewBuilderForm({...newBuilderForm, skills: e.target.value})}
+                    className="form-textarea"
+                    placeholder="React, Node.js, PostgreSQL, AWS, etc."
+                    rows="3"
+                  />
+                </div>
+
+                <div className="modal-actions">
+                  <button type="button" onClick={closeModal} className="btn-secondary">
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="quick-actions__button quick-actions__button--primary"
-                  >
+                  <button type="submit" disabled={loading} className="btn-primary">
                     {loading ? 'Adding...' : 'Add Builder'}
                   </button>
                 </div>
               </form>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </main>
+      )}
     </div>
   );
 };
