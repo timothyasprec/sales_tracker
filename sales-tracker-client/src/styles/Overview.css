@@ -1,0 +1,262 @@
+/* Overview Dashboard Styles - BEM Naming Convention */
+
+.overview {
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+.overview__header {
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 20px 40px;
+}
+
+.overview__header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.overview__title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.overview__user {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.overview__user-name {
+  font-size: 15px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.overview__button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.overview__button--logout {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.overview__button--logout:hover {
+  background-color: #e5e7eb;
+}
+
+.overview__nav {
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 40px;
+  display: flex;
+  gap: 8px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.overview__nav-item {
+  padding: 16px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 15px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.overview__nav-item:hover {
+  color: #3b82f6;
+  background-color: #f9fafb;
+}
+
+.overview__nav-item--active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+.overview__main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px;
+}
+
+.overview__content {
+  background: transparent;
+}
+
+.overview__section-header {
+  margin-bottom: 32px;
+}
+
+.overview__section-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.overview__section-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.overview__loading {
+  text-align: center;
+  padding: 60px;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.overview__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.overview__metric-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.overview__metric-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.overview__metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.overview__metric-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.overview__metric-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overview__metric-icon--blue {
+  background-color: #eff6ff;
+  color: #3b82f6;
+}
+
+.overview__metric-icon--purple {
+  background-color: #f5f3ff;
+  color: #8b5cf6;
+}
+
+.overview__metric-icon--red {
+  background-color: #fef2f2;
+  color: #ef4444;
+}
+
+.overview__metric-icon--green {
+  background-color: #f0fdf4;
+  color: #22c55e;
+}
+
+.overview__metric-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.overview__metric-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.overview__metric-change {
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.overview__metric-change--positive {
+  color: #10b981;
+}
+
+.overview__metric-change--negative {
+  color: #ef4444;
+}
+
+.overview__metric-info {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+@media (max-width: 1200px) {
+  .overview__metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .overview__header {
+    padding: 16px 20px;
+  }
+
+  .overview__title {
+    font-size: 24px;
+  }
+
+  .overview__nav {
+    padding: 0 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .overview__nav-item {
+    padding: 14px 20px;
+    white-space: nowrap;
+  }
+
+  .overview__main {
+    padding: 24px 20px;
+  }
+
+  .overview__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .overview__metric-value {
+    font-size: 32px;
+  }
+}
+

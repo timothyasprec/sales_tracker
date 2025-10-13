@@ -3,6 +3,11 @@ import { AuthProvider } from './utils/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Overview from './pages/Overview';
+import AllLeads from './pages/AllLeads';
+import Builders from './pages/Builders';
+import ActivityFeed from './pages/ActivityFeed';
+import QuickActions from './pages/QuickActions';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import UserManagement from './pages/UserManagement';
@@ -14,6 +19,50 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          
+          {/* New Main Navigation */}
+          <Route
+            path="/overview"
+            element={
+              <ProtectedRoute>
+                <Overview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leads"
+            element={
+              <ProtectedRoute>
+                <AllLeads />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/builders"
+            element={
+              <ProtectedRoute>
+                <Builders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/activity"
+            element={
+              <ProtectedRoute>
+                <ActivityFeed />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/actions"
+            element={
+              <ProtectedRoute>
+                <QuickActions />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Legacy Routes */}
           <Route
             path="/dashboard"
             element={
@@ -38,8 +87,10 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          
+          {/* Default Routes */}
+          <Route path="/" element={<Navigate to="/overview" replace />} />
+          <Route path="*" element={<Navigate to="/overview" replace />} />
         </Routes>
       </AuthProvider>
     </Router>
