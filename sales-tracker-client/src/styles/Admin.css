@@ -1,0 +1,256 @@
+/* Admin Dashboard Styles - BEM Naming Convention */
+
+.admin {
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+.admin__header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin__header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin__title {
+  font-size: 28px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.admin__user {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.admin__user-name {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.admin__main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px;
+}
+
+.admin__tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.admin__tab {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+  margin-bottom: -2px;
+}
+
+.admin__tab:hover {
+  color: #667eea;
+}
+
+.admin__tab--active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+.admin__filters {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin__filters-title {
+  font-weight: 600;
+  color: #334155;
+}
+
+.admin__filter-select,
+.admin__filter-input {
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  min-width: 180px;
+}
+
+.admin__filter-select:focus,
+.admin__filter-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.admin__button {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.admin__button--secondary {
+  background-color: white;
+  color: #667eea;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.admin__button--secondary:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: white;
+}
+
+.admin__button--logout {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.admin__button--logout:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.admin__button--clear {
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.admin__button--clear:hover {
+  background-color: #f1f5f9;
+}
+
+.admin__content {
+  background: white;
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.admin__error {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.admin__loading {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+  font-size: 16px;
+}
+
+.admin__table-container {
+  overflow-x: auto;
+}
+
+.admin__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admin__table thead {
+  background-color: #f8fafc;
+}
+
+.admin__table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #334155;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.admin__table td {
+  padding: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #475569;
+}
+
+.admin__table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.admin__table-empty {
+  text-align: center;
+  padding: 40px !important;
+  color: #94a3b8;
+}
+
+.admin__notes-cell {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin__badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  text-transform: capitalize;
+}
+
+.admin__stats {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .admin__filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin__filter-select,
+  .admin__filter-input,
+  .admin__button--clear {
+    width: 100%;
+  }
+
+  .admin__table {
+    font-size: 12px;
+  }
+
+  .admin__table th,
+  .admin__table td {
+    padding: 8px;
+  }
+}
+
