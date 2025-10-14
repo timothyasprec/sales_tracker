@@ -9,9 +9,6 @@
   background-color: #ffffff;
   border-bottom: 1px solid #f0f0f0;
   padding: 24px 48px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
 }
 
 .overview__header-content {
