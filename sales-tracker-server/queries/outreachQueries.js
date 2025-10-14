@@ -124,7 +124,7 @@ const updateOutreach = async (id, updateData) => {
     'company_name', 'linkedin_url', 'contact_method', 'outreach_date',
     'lead_temperature', 'status', 'notes', 'response_notes', 'stage',
     'ownership', 'role_consideration', 'job_description_url',
-    'job_title', 'job_posting_url', 'experience_level'
+    'job_title', 'job_posting_url', 'experience_level', 'next_steps'
   ];
 
   allowedFields.forEach(field => {

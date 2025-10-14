@@ -5,13 +5,17 @@ const getAllOutreach = async (req, res) => {
   try {
     const { staff_user_id, status, company_name } = req.query;
 
-    // Staff can only see their own outreach unless they're admin
-    let userId = staff_user_id;
-    if (req.user.role !== 'admin') {
-      userId = req.user.id;
+    // Build filters
+    const filters = { status, company_name };
+    
+    // If a specific staff_user_id is requested, use it
+    // Otherwise, admins see all, staff see only their own
+    if (staff_user_id) {
+      filters.staff_user_id = staff_user_id;
+    } else if (req.user.role !== 'admin') {
+      filters.staff_user_id = req.user.id;
     }
 
-    const filters = { staff_user_id: userId, status, company_name };
     const outreach = await outreachQueries.getAllOutreach(filters);
 
     res.json(outreach);
@@ -50,13 +54,26 @@ const createOutreach = async (req, res) => {
     const {
       contact_name,
       contact_title,
+      contact_email,
+      contact_phone,
       company_name,
       linkedin_url,
       contact_method,
       outreach_date,
+      lead_temperature,
       status,
       notes,
-      response_notes
+      response_notes,
+      stage,
+      ownership,
+      source,
+      role_consideration,
+      job_description_url,
+      aligned_sector,
+      lead_type,
+      job_title,
+      job_posting_url,
+      experience_level
     } = req.body;
 
     // Validate required fields
@@ -68,13 +85,24 @@ const createOutreach = async (req, res) => {
       staff_user_id: req.user.id,
       contact_name,
       contact_title,
+      contact_email,
+      contact_phone,
       company_name,
       linkedin_url,
       contact_method,
       outreach_date,
+      lead_temperature,
       status: status || 'attempted',
       notes,
-      response_notes
+      response_notes,
+      stage,
+      ownership,
+      role_consideration,
+      job_description_url,
+      aligned_sector,
+      job_title,
+      job_posting_url,
+      experience_level
     };
 
     const newOutreach = await outreachQueries.createOutreach(outreachData);
@@ -85,6 +113,7 @@ const createOutreach = async (req, res) => {
     });
   } catch (error) {
     console.error('Create outreach error:', error);
+    console.error('Error details:', error.message);
     res.status(500).json({ error: 'Error creating outreach record' });
   }
 };

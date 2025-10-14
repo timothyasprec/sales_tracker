@@ -141,3 +141,37 @@ export const exportBuildersToCSV = (builders, filename = `builders_export_${new 
   downloadCSV(csvContent, filename);
 };
 
+/**
+ * Export job postings data to CSV
+ * @param {Array} jobPostings - Array of job posting objects
+ * @param {string} filename - Optional filename
+ */
+export const exportJobPostingsToCSV = (jobPostings, filename = `job_postings_${new Date().toISOString().split('T')[0]}.csv`) => {
+  const headers = [
+    { key: 'job_title', label: 'Job Title' },
+    { key: 'company_name', label: 'Company' },
+    { key: 'job_url', label: 'Job URL' },
+    { key: 'experience_level', label: 'Experience Level' },
+    { key: 'source', label: 'Source' },
+    { key: 'lead_temperature', label: 'Priority' },
+    { key: 'aligned_sector', label: 'Aligned Sectors' },
+    { key: 'ownership', label: 'Owner' },
+    { key: 'notes', label: 'Notes' },
+    { key: 'created_at', label: 'Date Posted' },
+    { key: 'updated_at', label: 'Last Updated' }
+  ];
+  
+  // Process job postings to format aligned_sector properly
+  const processedData = jobPostings.map(job => ({
+    ...job,
+    aligned_sector: typeof job.aligned_sector === 'string' 
+      ? JSON.parse(job.aligned_sector || '[]')
+      : job.aligned_sector || [],
+    created_at: job.created_at ? new Date(job.created_at).toLocaleDateString() : '',
+    updated_at: job.updated_at ? new Date(job.updated_at).toLocaleDateString() : ''
+  }));
+  
+  const csvContent = convertToCSV(processedData, headers);
+  downloadCSV(csvContent, filename);
+};
+

@@ -42,6 +42,8 @@ const ActivityFeed = () => {
         if (temp === 'hot') return '🔥';
         if (temp === 'warm') return '☀️';
         return '❄️';
+      case 'added_job_posting':
+        return '💼';
       case 'updated_lead':
         const newStage = activity.details?.new_stage;
         if (newStage === 'Interested') return '🎉';
@@ -51,9 +53,29 @@ const ActivityFeed = () => {
         return '📈';
       case 'added_builder':
         return '⭐';
+      case 'updated_builder':
+        const jobStatus = activity.details?.job_status;
+        if (jobStatus === 'Offer/Hired') return '🎉';
+        if (jobStatus === 'Interviewing') return '🗣️';
+        if (jobStatus === 'Actively Applying') return '📝';
+        return '📊';
+      case 'completed_next_step':
+      case 'completed_builder_task':
+        return '✅';
       default:
         return '✨';
     }
+  };
+
+  // Get section badge
+  const getSectionBadge = (entityType) => {
+    const badges = {
+      'lead': { label: 'All Leads', color: '#3b82f6' },
+      'builder': { label: 'Builders', color: '#8b5cf6' },
+      'job_posting': { label: 'Job Postings', color: '#10b981' },
+      'activity': { label: 'Activity', color: '#f59e0b' }
+    };
+    return badges[entityType] || { label: entityType, color: '#6b7280' };
   };
 
   // Get message based on action type
@@ -67,6 +89,14 @@ const ActivityFeed = () => {
             just added a new <strong>{tempLabel}</strong> lead: <strong>{activity.entity_name}</strong>
           </>
         );
+      case 'added_job_posting':
+        const jobExperienceLevel = activity.details?.experience_level;
+        return (
+          <>
+            added a new job posting: <strong>{activity.entity_name}</strong>
+            {jobExperienceLevel && ` (${jobExperienceLevel})`}
+          </>
+        );
       case 'updated_lead':
         const oldStage = activity.details?.old_stage;
         const newStage = activity.details?.new_stage;
@@ -74,6 +104,67 @@ const ActivityFeed = () => {
         return (
           <>
             moved <strong>{activity.entity_name}</strong> from <span className="stage-badge">{oldStage}</span> to <span className={`stage-badge ${isPositive ? 'stage-badge--positive' : ''}`}>{newStage}</span>
+          </>
+        );
+      case 'updated_builder':
+        const changes = activity.details?.changes || 'profile';
+        const jobStatus = activity.details?.job_status;
+        
+        // Get matching colors from Builder status
+        const getStatusColor = (status) => {
+          const colorMap = {
+            'Building Resume': '#ef4444',
+            'Ready to Apply': '#f97316',
+            'Actively Applying': '#eab308',
+            'Interviewing': '#84cc16',
+            'Offer/Hired': '#a855f7',
+            'Paused/On Hold': '#6b7280'
+          };
+          return colorMap[status] || '#6b7280';
+        };
+        
+        // If there's a job status, show it prominently
+        if (jobStatus && changes.includes('job status')) {
+          return (
+            <>
+              updated <strong>{activity.entity_name}</strong> to{' '}
+              <span 
+                className="stage-badge" 
+                style={{ 
+                  marginLeft: '8px',
+                  backgroundColor: getStatusColor(jobStatus),
+                  color: '#ffffff',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  fontWeight: '600'
+                }}
+              >
+                {jobStatus}
+              </span>
+            </>
+          );
+        }
+        
+        // Otherwise show the changes
+        return (
+          <>
+            updated <strong>{activity.entity_name}</strong>
+            {changes !== 'profile' && <> - {changes}</>}
+          </>
+        );
+      case 'completed_next_step':
+        return (
+          <>
+            ✅ completed a task for <strong>{activity.entity_name}</strong>
+            {activity.details?.completed_task && ` - "${activity.details.completed_task}"`}
+          </>
+        );
+      case 'completed_builder_task':
+        return (
+          <>
+            ✅ completed a builder task for <strong>{activity.entity_name}</strong>
+            {activity.details?.completed_task && ` - "${activity.details.completed_task}"`}
           </>
         );
       case 'added_builder':
@@ -110,6 +201,18 @@ const ActivityFeed = () => {
     }
     if (activity.action_type === 'added_builder') {
       return 'Welcome to the team! 🎈';
+    }
+    if (activity.action_type === 'updated_builder') {
+      const jobStatus = activity.details?.job_status;
+      if (jobStatus === 'Offer/Hired') {
+        return 'Congratulations! Builder has an offer or hired! 🎉🎊';
+      }
+      if (jobStatus === 'Interviewing') {
+        return 'Interviews in progress! Keep it up! 💪';
+      }
+    }
+    if (activity.action_type === 'completed_builder_task' || activity.action_type === 'completed_next_step') {
+      return 'Task completed! Great progress! ✨';
     }
     return null;
   };
@@ -203,6 +306,7 @@ const ActivityFeed = () => {
             <div className="activity-feed__list">
               {activities.map((activity) => {
                 const celebration = getCelebration(activity);
+                const sectionBadge = getSectionBadge(activity.entity_type);
                 return (
                   <div key={activity.id} className="activity-card">
                     <div className="activity-card__avatar" style={{ backgroundColor: getAvatarColor(activity.user_name) }}>
@@ -210,7 +314,15 @@ const ActivityFeed = () => {
                     </div>
                     <div className="activity-card__content">
                       <div className="activity-card__header">
-                        <span className="activity-card__user">{activity.user_name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="activity-card__user">{activity.user_name}</span>
+                          <span 
+                            className="activity-card__section-badge" 
+                            style={{ backgroundColor: sectionBadge.color }}
+                          >
+                            {sectionBadge.label}
+                          </span>
+                        </div>
                         <span className="activity-card__time">{getTimeAgo(activity.created_at)}</span>
                       </div>
                       <div className="activity-card__message">

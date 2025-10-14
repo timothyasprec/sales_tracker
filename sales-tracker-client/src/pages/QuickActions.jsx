@@ -42,7 +42,8 @@ const QuickActions = () => {
     stage: '',
     lead_temperature: '',
     notes: '',
-    next_steps: ''
+    next_steps: '',
+    update_date: new Date().toISOString().split('T')[0]
   });
 
   const [newBuilderForm, setNewBuilderForm] = useState({
@@ -60,7 +61,8 @@ const QuickActions = () => {
     aligned_sector: [],
     sector_alignment_notes: '',
     role: '',
-    skills: ''
+    skills: '',
+    created_date: new Date().toISOString().split('T')[0]
   });
 
   // Search results for leads
@@ -76,7 +78,8 @@ const QuickActions = () => {
   const fetchStaffMembers = async () => {
     try {
       const users = await userAPI.getAllUsers();
-      setStaffMembers(users.filter(u => u.role === 'staff' || u.role === 'admin'));
+      // Include all active users for ownership dropdown
+      setStaffMembers(users.filter(u => u.is_active !== false));
     } catch (error) {
       console.error('Error fetching staff:', error);
     }
@@ -148,7 +151,8 @@ const QuickActions = () => {
       stage: '',
       lead_temperature: '',
       notes: '',
-      next_steps: ''
+      next_steps: '',
+      update_date: new Date().toISOString().split('T')[0]
     });
     setNewBuilderForm({
       name: '',
@@ -165,7 +169,8 @@ const QuickActions = () => {
       aligned_sector: [],
       sector_alignment_notes: '',
       role: '',
-      skills: ''
+      skills: '',
+      created_date: new Date().toISOString().split('T')[0]
     });
     setShowMyLeadsOnly(false); // Reset the filter
   };
@@ -214,9 +219,10 @@ const QuickActions = () => {
       const updateData = {
         stage: updateLeadForm.stage,
         lead_temperature: updateLeadForm.lead_temperature,
+        next_steps: updateLeadForm.next_steps,
         notes: updateLeadForm.selectedLead.notes 
-          ? `${updateLeadForm.selectedLead.notes}\n\n[${new Date().toLocaleDateString()}] ${updateLeadForm.notes}\nNext Steps: ${updateLeadForm.next_steps}`
-          : `${updateLeadForm.notes}\nNext Steps: ${updateLeadForm.next_steps}`
+          ? `${updateLeadForm.selectedLead.notes}\n\n[${new Date().toLocaleDateString()}] ${updateLeadForm.notes}`
+          : updateLeadForm.notes
       };
 
       await outreachAPI.updateOutreach(updateLeadForm.selectedLead.id, updateData);
@@ -442,6 +448,19 @@ const QuickActions = () => {
               <form className="modal-form" onSubmit={handleAddNewLead}>
                 <h2 className="modal-title">Add New Lead</h2>
 
+                {/* Date Field */}
+                <div className="form-section">
+                  <label className="form-label">Date *</label>
+                  <p className="form-help-text">Select the date for this lead entry (useful for recording past leads)</p>
+                  <input
+                    type="date"
+                    value={newLeadForm.outreach_date}
+                    onChange={(e) => setNewLeadForm({...newLeadForm, outreach_date: e.target.value})}
+                    className="form-input"
+                    required
+                  />
+                </div>
+
                 {/* Lead Type */}
                 <div className="form-section">
                   <label className="form-label">Lead Type</label>
@@ -634,30 +653,19 @@ const QuickActions = () => {
                       />
                     </div>
 
-                    <div className="form-row">
-                      <div className="form-section">
-                        <label className="form-label">Date Posted</label>
-                        <input
-                          type="date"
-                          value={newLeadForm.outreach_date}
-                          onChange={(e) => setNewLeadForm({...newLeadForm, outreach_date: e.target.value})}
-                          className="form-input"
-                        />
-                      </div>
-                      <div className="form-section">
-                        <label className="form-label">Experience Level *</label>
-                        <select
-                          required
-                          value={newLeadForm.experience_level}
-                          onChange={(e) => setNewLeadForm({...newLeadForm, experience_level: e.target.value})}
-                          className="form-select"
-                        >
-                          <option value="">Select Level</option>
-                          {experienceLevels.map(level => (
-                            <option key={level} value={level}>{level}</option>
-                          ))}
-                        </select>
-                      </div>
+                    <div className="form-section">
+                      <label className="form-label">Experience Level *</label>
+                      <select
+                        required
+                        value={newLeadForm.experience_level}
+                        onChange={(e) => setNewLeadForm({...newLeadForm, experience_level: e.target.value})}
+                        className="form-select"
+                      >
+                        <option value="">Select Level</option>
+                        {experienceLevels.map(level => (
+                          <option key={level} value={level}>{level}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="form-section">
@@ -701,6 +709,23 @@ const QuickActions = () => {
                   </div>
                 </div>
 
+                {/* Ownership - For Both Types */}
+                <div className="form-section">
+                  <label className="form-label">Ownership *</label>
+                  <p className="form-help-text">Please select your name below</p>
+                  <select
+                    required
+                    value={newLeadForm.ownership}
+                    onChange={(e) => setNewLeadForm({...newLeadForm, ownership: e.target.value})}
+                    className="form-select"
+                  >
+                    <option value="">Please select your name below</option>
+                    {staffMembers.map(member => (
+                      <option key={member.id} value={member.name}>{member.name}</option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Notes / Comments - For Both Types */}
                 <div className="form-section">
                   <label className="form-label">Notes / Comments</label>
@@ -735,6 +760,19 @@ const QuickActions = () => {
             {activeAction === 'updateLead' && (
               <form className="modal-form" onSubmit={handleUpdateLead}>
                 <h2 className="modal-title">Update Lead Status</h2>
+
+                {/* Date Field */}
+                <div className="form-section">
+                  <label className="form-label">Update Date *</label>
+                  <p className="form-help-text">Select the date for this update (useful for recording past interactions)</p>
+                  <input
+                    type="date"
+                    value={updateLeadForm.update_date}
+                    onChange={(e) => setUpdateLeadForm({...updateLeadForm, update_date: e.target.value})}
+                    className="form-input"
+                    required
+                  />
+                </div>
 
                 {/* Search */}
                 <div className="form-section">
@@ -910,6 +948,19 @@ const QuickActions = () => {
             {activeAction === 'newBuilder' && (
               <form className="modal-form" onSubmit={handleAddBuilder}>
                 <h2 className="modal-title">Add New Builder</h2>
+
+                {/* Date Field */}
+                <div className="form-section">
+                  <label className="form-label">Date *</label>
+                  <p className="form-help-text">Select the date for this builder entry (useful for recording past builders)</p>
+                  <input
+                    type="date"
+                    value={newBuilderForm.created_date}
+                    onChange={(e) => setNewBuilderForm({...newBuilderForm, created_date: e.target.value})}
+                    className="form-input"
+                    required
+                  />
+                </div>
 
                 <div className="form-row">
                   <div className="form-section">

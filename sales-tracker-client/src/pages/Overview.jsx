@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
-import { outreachAPI, jobPostingAPI } from '../services/api';
+import { outreachAPI, jobPostingAPI, builderAPI } from '../services/api';
 import '../styles/Overview.css';
 
 const Overview = () => {
@@ -24,9 +24,10 @@ const Overview = () => {
   const fetchMetrics = async () => {
     setLoading(true);
     try {
-      // Fetch outreach data for leads
+      // Fetch all data
       const outreachData = await outreachAPI.getAllOutreach();
       const jobPostingsData = await jobPostingAPI.getAllJobPostings();
+      const buildersData = await builderAPI.getAllBuilders();
 
       // Calculate total leads (outreach + job postings)
       const totalLeads = outreachData.length + jobPostingsData.length;
@@ -45,13 +46,26 @@ const Overview = () => {
         ['interested', 'meeting_scheduled', 'opportunity_created'].includes(item.status)
       ).length;
 
+      // Calculate active builders (status = 'active')
+      const activeBuilders = buildersData.filter(builder => 
+        builder.status === 'active'
+      ).length;
+
+      // Calculate placements (builders with status = 'placed')
+      const placements = buildersData.filter(builder => 
+        builder.status === 'placed'
+      ).length;
+
+      // Calculate placement goal (total active builders)
+      const placementGoal = buildersData.length;
+
       setMetrics({
         totalLeads,
         leadsThisWeek,
-        activeBuilders: 34, // Static for now
+        activeBuilders,
         hotLeads,
-        placements: 12, // Static for now
-        placementGoal: 34
+        placements,
+        placementGoal
       });
     } catch (error) {
       console.error('Error fetching metrics:', error);

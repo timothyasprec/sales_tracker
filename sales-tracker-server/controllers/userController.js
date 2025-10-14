@@ -1,13 +1,8 @@
 const userQueries = require('../queries/userQueries');
 
-// Get all users (admin only)
+// Get all users (accessible to all authenticated users for ownership dropdowns)
 const getAllUsers = async (req, res) => {
   try {
-    // Check if user is admin
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
     const users = await userQueries.getAllUsers();
     
     // Remove password from response

@@ -1,28 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const jobPostingController = require('../controllers/jobPostingController');
-const auth = require('../middleware/auth');
+const authenticateToken = require('../middleware/auth');
 
-// GET /api/job-postings - Get all job postings
-router.get('/', auth, jobPostingController.getAllJobPostings);
+// All routes require authentication
+router.use(authenticateToken);
 
-// GET /api/job-postings/:id - Get job posting by ID
-router.get('/:id', auth, jobPostingController.getJobPostingById);
+// GET all job postings
+router.get('/', jobPostingController.getAllJobPostings);
 
-// POST /api/job-postings - Create new job posting
-router.post('/', auth, jobPostingController.createJobPosting);
+// GET job posting by ID
+router.get('/:id', jobPostingController.getJobPostingById);
 
-// PUT /api/job-postings/:id - Update job posting
-router.put('/:id', auth, jobPostingController.updateJobPosting);
+// POST create new job posting
+router.post('/', jobPostingController.createJobPosting);
 
-// DELETE /api/job-postings/:id - Delete job posting
-router.delete('/:id', auth, jobPostingController.deleteJobPosting);
+// PUT update job posting
+router.put('/:id', jobPostingController.updateJobPosting);
 
-// POST /api/job-postings/:id/builders - Add Builder to job posting
-router.post('/:id/builders', auth, jobPostingController.addBuilder);
-
-// GET /api/job-postings/:id/builders - Get Builders for job posting
-router.get('/:id/builders', auth, jobPostingController.getBuilders);
+// DELETE job posting
+router.delete('/:id', jobPostingController.deleteJobPosting);
 
 module.exports = router;
-

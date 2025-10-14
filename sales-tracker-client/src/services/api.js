@@ -11,6 +11,9 @@ const apiRequest = async (endpoint, options = {}) => {
   
   const headers = {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
     ...options.headers,
   };
 
@@ -21,9 +24,17 @@ const apiRequest = async (endpoint, options = {}) => {
   const config = {
     ...options,
     headers,
+    cache: 'no-store', // Prevent fetch API caching
   };
 
-  const response = await fetch(`${API_URL}${endpoint}`, config);
+  // Add timestamp to URL for GET requests to prevent caching
+  let url = `${API_URL}${endpoint}`;
+  if (!options.method || options.method === 'GET') {
+    const separator = url.includes('?') ? '&' : '?';
+    url += `${separator}_t=${Date.now()}`;
+  }
+
+  const response = await fetch(url, config);
   const data = await response.json();
 
   if (!response.ok) {

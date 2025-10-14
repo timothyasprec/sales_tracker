@@ -44,12 +44,30 @@ const createBuilder = async (req, res) => {
       bio,
       linkedin_url,
       github_url,
-      portfolio_url
+      portfolio_url,
+      years_experience,
+      education,
+      university,
+      major,
+      education_completed,
+      date_of_birth,
+      aligned_sector,
+      sector_alignment_notes,
+      notes,
+      next_steps,
+      created_date,
+      job_search_status,
+      offer_company_name,
+      initial_salary,
+      current_salary,
+      offer_date,
+      start_date,
+      offer_notes
     } = req.body;
 
     // Validate required fields
-    if (!name || !cohort) {
-      return res.status(400).json({ error: 'Name and cohort are required' });
+    if (!name || !cohort || !email) {
+      return res.status(400).json({ error: 'Name, cohort, and email are required' });
     }
 
     const builderData = {
@@ -62,7 +80,25 @@ const createBuilder = async (req, res) => {
       bio,
       linkedin_url,
       github_url,
-      portfolio_url
+      portfolio_url,
+      years_of_experience: years_experience,
+      education,
+      university,
+      major,
+      education_completed,
+      date_of_birth,
+      aligned_sector,
+      sector_alignment_notes,
+      notes,
+      next_steps,
+      created_date,
+      job_search_status,
+      offer_company_name,
+      initial_salary,
+      current_salary,
+      offer_date,
+      start_date,
+      offer_notes
     };
 
     const newBuilder = await builderQueries.createBuilder(builderData);
@@ -73,6 +109,8 @@ const createBuilder = async (req, res) => {
     });
   } catch (error) {
     console.error('Create builder error:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({ error: 'Error creating builder' });
   }
 };

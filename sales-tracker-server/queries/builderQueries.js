@@ -73,40 +73,111 @@ const createBuilder = async (builderData) => {
     education_completed,
     date_of_birth,
     aligned_sector,
-    sector_alignment_notes
+    sector_alignment_notes,
+    notes,
+    next_steps,
+    created_date,
+    job_search_status,
+    offer_company_name,
+    initial_salary,
+    current_salary,
+    offer_date,
+    start_date,
+    offer_notes
   } = builderData;
 
-  const query = `
-    INSERT INTO builders (
-      name, email, cohort, role, skills, status, bio,
-      linkedin_url, github_url, portfolio_url, years_of_experience,
-      education, university, major, education_completed, date_of_birth,
-      aligned_sector, sector_alignment_notes
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
-    RETURNING *
-  `;
-
-  const values = [
-    name,
-    email,
-    cohort,
-    role,
-    skills,
-    status || 'active',
-    bio,
-    linkedin_url,
-    github_url,
-    portfolio_url,
-    years_of_experience || null,
-    education || null,
-    university || null,
-    major || null,
-    education_completed || false,
-    date_of_birth || null,
-    JSON.stringify(aligned_sector || []),
-    sector_alignment_notes || null
-  ];
+  let query, values;
+  
+  if (created_date) {
+    // If a custom created_date is provided, use it
+    query = `
+      INSERT INTO builders (
+        name, email, cohort, role, skills, status, bio,
+        linkedin_url, github_url, portfolio_url, years_of_experience,
+        education, university, major, education_completed, date_of_birth,
+        aligned_sector, sector_alignment_notes, notes, next_steps, 
+        job_search_status, offer_company_name, initial_salary, current_salary,
+        offer_date, start_date, offer_notes, created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
+      RETURNING *
+    `;
+    
+    values = [
+      name,
+      email,
+      cohort,
+      role,
+      skills,
+      status || 'active',
+      bio,
+      linkedin_url,
+      github_url,
+      portfolio_url,
+      years_of_experience || null,
+      education || null,
+      university || null,
+      major || null,
+      education_completed || false,
+      date_of_birth || null,
+      JSON.stringify(aligned_sector || []),
+      sector_alignment_notes || null,
+      notes || null,
+      next_steps || null,
+      job_search_status || 'building_resume',
+      offer_company_name || null,
+      initial_salary || null,
+      current_salary || null,
+      offer_date || null,
+      start_date || null,
+      offer_notes || null,
+      created_date
+    ];
+  } else {
+    // Use default timestamp
+    query = `
+      INSERT INTO builders (
+        name, email, cohort, role, skills, status, bio,
+        linkedin_url, github_url, portfolio_url, years_of_experience,
+        education, university, major, education_completed, date_of_birth,
+        aligned_sector, sector_alignment_notes, notes, next_steps,
+        job_search_status, offer_company_name, initial_salary, current_salary,
+        offer_date, start_date, offer_notes
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+      RETURNING *
+    `;
+    
+    values = [
+      name,
+      email,
+      cohort,
+      role,
+      skills,
+      status || 'active',
+      bio,
+      linkedin_url,
+      github_url,
+      portfolio_url,
+      years_of_experience || null,
+      education || null,
+      university || null,
+      major || null,
+      education_completed || false,
+      date_of_birth || null,
+      JSON.stringify(aligned_sector || []),
+      sector_alignment_notes || null,
+      notes || null,
+      next_steps || null,
+      job_search_status || 'building_resume',
+      offer_company_name || null,
+      initial_salary || null,
+      current_salary || null,
+      offer_date || null,
+      start_date || null,
+      offer_notes || null
+    ];
+  }
 
   const result = await pool.query(query, values);
   return result.rows[0];
@@ -122,7 +193,9 @@ const updateBuilder = async (id, updateData) => {
     'name', 'email', 'cohort', 'role', 'skills', 'status',
     'bio', 'linkedin_url', 'github_url', 'portfolio_url',
     'years_of_experience', 'education', 'university', 'major',
-    'education_completed', 'date_of_birth', 'sector_alignment_notes'
+    'education_completed', 'date_of_birth', 'sector_alignment_notes',
+    'notes', 'next_steps', 'job_search_status', 'offer_company_name',
+    'initial_salary', 'current_salary', 'offer_date', 'start_date', 'offer_notes'
   ];
 
   allowedFields.forEach(field => {

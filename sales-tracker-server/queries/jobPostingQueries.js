@@ -1,48 +1,15 @@
 const pool = require('../db/dbConfig');
 
-// Get all job postings with optional filters
-const getAllJobPostings = async (filters = {}) => {
-  let query = `
-    SELECT jp.*, u.name as staff_name
-    FROM job_postings jp
-    LEFT JOIN users u ON jp.staff_user_id = u.id
-    WHERE 1=1
-  `;
-  const values = [];
-  let paramCount = 1;
-
-  if (filters.staff_user_id) {
-    query += ` AND jp.staff_user_id = $${paramCount}`;
-    values.push(filters.staff_user_id);
-    paramCount++;
-  }
-
-  if (filters.status) {
-    query += ` AND jp.status = $${paramCount}`;
-    values.push(filters.status);
-    paramCount++;
-  }
-
-  if (filters.company_name) {
-    query += ` AND jp.company_name ILIKE $${paramCount}`;
-    values.push(`%${filters.company_name}%`);
-    paramCount++;
-  }
-
-  query += ` ORDER BY jp.created_at DESC`;
-
-  const result = await pool.query(query, values);
+// Get all job postings
+const getAllJobPostings = async () => {
+  const query = 'SELECT * FROM job_postings ORDER BY created_at DESC';
+  const result = await pool.query(query);
   return result.rows;
 };
 
 // Get job posting by ID
 const getJobPostingById = async (id) => {
-  const query = `
-    SELECT jp.*, u.name as staff_name
-    FROM job_postings jp
-    LEFT JOIN users u ON jp.staff_user_id = u.id
-    WHERE jp.id = $1
-  `;
+  const query = 'SELECT * FROM job_postings WHERE id = $1';
   const result = await pool.query(query, [id]);
   return result.rows[0];
 };
@@ -50,40 +17,46 @@ const getJobPostingById = async (id) => {
 // Create new job posting
 const createJobPosting = async (jobPostingData) => {
   const {
-    staff_user_id,
-    company_name,
     job_title,
+    company_name,
     job_url,
+    experience_level,
     source,
-    outreach_id,
-    status,
-    description,
-    salary_range,
-    location,
-    notes
+    lead_temperature,
+    ownership,
+    aligned_sector,
+    notes,
+    staff_user_id
   } = jobPostingData;
 
   const query = `
     INSERT INTO job_postings (
-      staff_user_id, company_name, job_title, job_url, source,
-      outreach_id, status, description, salary_range, location, notes
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      job_title,
+      company_name,
+      job_url,
+      experience_level,
+      source,
+      lead_temperature,
+      ownership,
+      aligned_sector,
+      notes,
+      staff_user_id,
+      status
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'active')
     RETURNING *
   `;
 
   const values = [
-    staff_user_id,
-    company_name,
     job_title,
-    job_url,
-    source,
-    outreach_id,
-    status,
-    description,
-    salary_range,
-    location,
-    notes
+    company_name,
+    job_url || null,
+    experience_level || null,
+    source || null,
+    lead_temperature || 'cold',
+    ownership || null,
+    aligned_sector ? JSON.stringify(aligned_sector) : null,
+    notes || null,
+    staff_user_id
   ];
 
   const result = await pool.query(query, values);
@@ -96,25 +69,32 @@ const updateJobPosting = async (id, updateData) => {
   const values = [];
   let paramCount = 1;
 
-  // Only include fields that are provided
   const allowedFields = [
-    'company_name', 'job_title', 'job_url', 'source', 'outreach_id',
-    'status', 'description', 'salary_range', 'location', 'notes'
+    'job_title',
+    'company_name',
+    'job_url',
+    'experience_level',
+    'source',
+    'lead_temperature',
+    'ownership',
+    'aligned_sector',
+    'notes',
+    'status'
   ];
 
-  allowedFields.forEach(field => {
-    if (updateData[field] !== undefined) {
-      fields.push(`${field} = $${paramCount}`);
-      values.push(updateData[field]);
+  for (const [key, value] of Object.entries(updateData)) {
+    if (allowedFields.includes(key) && value !== undefined) {
+      fields.push(`${key} = $${paramCount}`);
+      values.push(key === 'aligned_sector' && typeof value === 'object' ? JSON.stringify(value) : value);
       paramCount++;
     }
-  });
-
-  if (fields.length === 0) {
-    return await getJobPostingById(id);
   }
 
-  fields.push(`updated_at = NOW()`);
+  if (fields.length === 0) {
+    throw new Error('No valid fields to update');
+  }
+
+  fields.push(`updated_at = CURRENT_TIMESTAMP`);
   values.push(id);
 
   const query = `
@@ -130,42 +110,15 @@ const updateJobPosting = async (id, updateData) => {
 
 // Delete job posting
 const deleteJobPosting = async (id) => {
-  const query = `DELETE FROM job_postings WHERE id = $1`;
-  await pool.query(query, [id]);
+  const query = 'DELETE FROM job_postings WHERE id = $1 RETURNING *';
+  const result = await pool.query(query, [id]);
+  return result.rows[0];
 };
 
-// Add Builder to job posting
-const addBuilderToJobPosting = async (builderData) => {
-  const { job_posting_id, builder_name, status, notes } = builderData;
-
-  const query = `
-    INSERT INTO job_posting_builders (job_posting_id, builder_name, status, notes)
-    VALUES ($1, $2, $3, $4)
-    RETURNING *
-  `;
-
-  const values = [job_posting_id, builder_name, status, notes];
-
-  try {
-    const result = await pool.query(query, values);
-    return result.rows[0];
-  } catch (error) {
-    if (error.code === '23505') { // Unique constraint violation
-      throw new Error('Builder already associated with this job posting (duplicate)');
-    }
-    throw error;
-  }
-};
-
-// Get Builders by job posting ID
-const getBuildersByJobPostingId = async (jobPostingId) => {
-  const query = `
-    SELECT *
-    FROM job_posting_builders
-    WHERE job_posting_id = $1
-    ORDER BY shared_date DESC
-  `;
-  const result = await pool.query(query, [jobPostingId]);
+// Get job postings by ownership
+const getJobPostingsByOwnership = async (ownership) => {
+  const query = 'SELECT * FROM job_postings WHERE ownership = $1 ORDER BY created_at DESC';
+  const result = await pool.query(query, [ownership]);
   return result.rows;
 };
 
@@ -175,7 +128,5 @@ module.exports = {
   createJobPosting,
   updateJobPosting,
   deleteJobPosting,
-  addBuilderToJobPosting,
-  getBuildersByJobPostingId
+  getJobPostingsByOwnership
 };
-
