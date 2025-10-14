@@ -147,7 +147,7 @@ const Overview = () => {
           ) : (
             <div className="overview__metrics">
               {/* Total Leads */}
-              <div className="overview__metric-card">
+              <div className="overview__metric-card overview__metric-card--blue">
                 <div className="overview__metric-header">
                   <span className="overview__metric-label">Total Leads</span>
                   <div className="overview__metric-icon overview__metric-icon--blue">
@@ -167,30 +167,11 @@ const Overview = () => {
                 </div>
               </div>
 
-              {/* Active Builders */}
-              <div className="overview__metric-card">
-                <div className="overview__metric-header">
-                  <span className="overview__metric-label">Active Builders</span>
-                  <div className="overview__metric-icon overview__metric-icon--purple">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="overview__metric-value">{metrics.activeBuilders}</div>
-                <div className="overview__metric-footer">
-                  <span className="overview__metric-info">In pipeline</span>
-                </div>
-              </div>
-
               {/* Job Postings */}
-              <div className="overview__metric-card">
+              <div className="overview__metric-card overview__metric-card--yellow">
                 <div className="overview__metric-header">
                   <span className="overview__metric-label">Job Postings</span>
-                  <div className="overview__metric-icon overview__metric-icon--green">
+                  <div className="overview__metric-icon overview__metric-icon--yellow">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                       <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
@@ -205,10 +186,29 @@ const Overview = () => {
                 </div>
               </div>
 
-              {/* Placements */}
-              <div className="overview__metric-card">
+              {/* Active Builders */}
+              <div className="overview__metric-card overview__metric-card--red">
                 <div className="overview__metric-header">
-                  <span className="overview__metric-label">Placements</span>
+                  <span className="overview__metric-label">Active Builders</span>
+                  <div className="overview__metric-icon overview__metric-icon--red">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="overview__metric-value">{metrics.activeBuilders}</div>
+                <div className="overview__metric-footer">
+                  <span className="overview__metric-info">In pipeline</span>
+                </div>
+              </div>
+
+              {/* Hired */}
+              <div className="overview__metric-card overview__metric-card--green">
+                <div className="overview__metric-header">
+                  <span className="overview__metric-label">Hired</span>
                   <div className="overview__metric-icon overview__metric-icon--green">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
