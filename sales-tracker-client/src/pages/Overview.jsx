@@ -19,6 +19,8 @@ const Overview = () => {
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
   const [modalData, setModalData] = useState([]);
+  const [sectorData, setSectorData] = useState([]);
+  const [sourceData, setSourceData] = useState([]);
 
   useEffect(() => {
     fetchMetrics();
@@ -85,6 +87,73 @@ const Overview = () => {
         placements,
         placementGoal
       });
+
+      // Calculate sector data for bar chart
+      const sectorCounts = {};
+      outreachData.forEach(lead => {
+        if (lead.lead_type === 'contact' || !lead.lead_type) {
+          const sectors = typeof lead.aligned_sector === 'string' 
+            ? JSON.parse(lead.aligned_sector || '[]') 
+            : lead.aligned_sector || [];
+          
+          sectors.forEach(sector => {
+            if (sector) {
+              if (!sectorCounts[sector]) {
+                sectorCounts[sector] = { count: 0, companies: [] };
+              }
+              sectorCounts[sector].count++;
+              sectorCounts[sector].companies.push({
+                name: lead.company_name,
+                contact: lead.contact_name,
+                temperature: lead.lead_temperature
+              });
+            }
+          });
+        }
+      });
+
+      const sectorArray = Object.entries(sectorCounts).map(([sector, data]) => ({
+        sector,
+        count: data.count,
+        companies: data.companies
+      })).sort((a, b) => b.count - a.count);
+
+      setSectorData(sectorArray);
+
+      // Calculate source data for donut chart
+      const sourceCounts = {};
+      outreachData.forEach(lead => {
+        if (lead.lead_type === 'contact' || !lead.lead_type) {
+          const source = lead.source || lead.contact_method || 'Unknown';
+          if (!sourceCounts[source]) {
+            sourceCounts[source] = { 
+              count: 0, 
+              hot: 0, 
+              warm: 0, 
+              cold: 0,
+              leads: [] 
+            };
+          }
+          sourceCounts[source].count++;
+          sourceCounts[source].leads.push(lead);
+          
+          const temp = lead.lead_temperature?.toLowerCase() || 'cold';
+          if (temp === 'hot') sourceCounts[source].hot++;
+          else if (temp === 'warm') sourceCounts[source].warm++;
+          else sourceCounts[source].cold++;
+        }
+      });
+
+      const sourceArray = Object.entries(sourceCounts).map(([source, data]) => ({
+        source,
+        count: data.count,
+        hot: data.hot,
+        warm: data.warm,
+        cold: data.cold,
+        leads: data.leads
+      })).sort((a, b) => b.count - a.count);
+
+      setSourceData(sourceArray);
     } catch (error) {
       console.error('Error fetching metrics:', error);
     } finally {
@@ -129,6 +198,20 @@ const Overview = () => {
     setActiveModal(null);
     setModalData([]);
   };
+
+  const handleSectorClick = (sectorInfo) => {
+    setModalData(sectorInfo.companies);
+    setActiveModal('sector');
+    setActiveModalTitle(`${sectorInfo.sector} - ${sectorInfo.count} Companies`);
+  };
+
+  const handleSourceClick = (sourceInfo) => {
+    setModalData(sourceInfo.leads);
+    setActiveModal('source');
+    setActiveModalTitle(`${sourceInfo.source} - Temperature Breakdown`);
+  };
+
+  const [activeModalTitle, setActiveModalTitle] = useState('');
 
   return (
     <div className="overview">
@@ -265,6 +348,138 @@ const Overview = () => {
               </div>
             </div>
           )}
+
+          {/* Charts Section */}
+          {!loading && (
+            <div className="overview__charts">
+              {/* Bar Chart - Aligned Sectors */}
+              <div className="overview__chart-container">
+                <div className="overview__chart-header">
+                  <h3 className="overview__chart-title">Companies by Aligned Sector</h3>
+                  <p className="overview__chart-subtitle">Click on a bar to see companies</p>
+                </div>
+                <div className="overview__bar-chart">
+                  {sectorData.length > 0 ? (
+                    <div className="overview__bar-chart-content">
+                      {sectorData.map((item) => {
+                        const maxCount = Math.max(...sectorData.map(s => s.count));
+                        const heightPercent = (item.count / maxCount) * 100;
+                        
+                        return (
+                          <div
+                            key={item.sector}
+                            className="overview__bar-item"
+                            onClick={() => handleSectorClick(item)}
+                          >
+                            <div className="overview__bar-wrapper">
+                              <div
+                                className="overview__bar"
+                                style={{ height: `${heightPercent}%` }}
+                              >
+                                <span className="overview__bar-count">{item.count}</span>
+                              </div>
+                            </div>
+                            <div className="overview__bar-label">{item.sector}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="overview__chart-empty">
+                      No sector data available yet
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Donut Chart - Lead Sources */}
+              <div className="overview__chart-container">
+                <div className="overview__chart-header">
+                  <h3 className="overview__chart-title">Leads by Source</h3>
+                  <p className="overview__chart-subtitle">Click on a segment to see temperature breakdown</p>
+                </div>
+                <div className="overview__donut-chart">
+                  {sourceData.length > 0 ? (
+                    <>
+                      <svg viewBox="0 0 200 200" className="overview__donut-svg">
+                        {(() => {
+                          const total = sourceData.reduce((sum, item) => sum + item.count, 0);
+                          let currentAngle = -90; // Start from top
+                          const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+                          
+                          return sourceData.map((item, index) => {
+                            const percentage = (item.count / total) * 100;
+                            const angle = (percentage / 100) * 360;
+                            const startAngle = currentAngle;
+                            const endAngle = currentAngle + angle;
+                            
+                            // Calculate arc path
+                            const startRad = (startAngle * Math.PI) / 180;
+                            const endRad = (endAngle * Math.PI) / 180;
+                            const radius = 80;
+                            const innerRadius = 50;
+                            
+                            const x1 = 100 + radius * Math.cos(startRad);
+                            const y1 = 100 + radius * Math.sin(startRad);
+                            const x2 = 100 + radius * Math.cos(endRad);
+                            const y2 = 100 + radius * Math.sin(endRad);
+                            const x3 = 100 + innerRadius * Math.cos(endRad);
+                            const y3 = 100 + innerRadius * Math.sin(endRad);
+                            const x4 = 100 + innerRadius * Math.cos(startRad);
+                            const y4 = 100 + innerRadius * Math.sin(startRad);
+                            
+                            const largeArc = angle > 180 ? 1 : 0;
+                            
+                            const path = `
+                              M ${x1} ${y1}
+                              A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}
+                              L ${x3} ${y3}
+                              A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x4} ${y4}
+                              Z
+                            `;
+                            
+                            currentAngle = endAngle;
+                            
+                            return (
+                              <path
+                                key={item.source}
+                                d={path}
+                                fill={colors[index % colors.length]}
+                                className="overview__donut-segment"
+                                onClick={() => handleSourceClick(item)}
+                              />
+                            );
+                          });
+                        })()}
+                        <text x="100" y="100" textAnchor="middle" dy="0.3em" className="overview__donut-center-text">
+                          {sourceData.reduce((sum, item) => sum + item.count, 0)}
+                        </text>
+                      </svg>
+                      <div className="overview__donut-legend">
+                        {sourceData.map((item, index) => {
+                          const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+                          return (
+                            <div key={item.source} className="overview__legend-item" onClick={() => handleSourceClick(item)}>
+                              <div
+                                className="overview__legend-color"
+                                style={{ backgroundColor: colors[index % colors.length] }}
+                              ></div>
+                              <span className="overview__legend-label">{item.source}</span>
+                              <span className="overview__legend-value">{item.count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="overview__chart-empty">
+                      No source data available yet
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
@@ -278,6 +493,7 @@ const Overview = () => {
                 {activeModal === 'jobPostings' && 'Job Postings Details'}
                 {activeModal === 'builders' && 'Active Builders Details'}
                 {activeModal === 'hired' && 'Hired Builders Details'}
+                {(activeModal === 'sector' || activeModal === 'source') && activeModalTitle}
               </h2>
               <button className="overview__modal-close" onClick={closeModal}>×</button>
             </div>
@@ -288,6 +504,8 @@ const Overview = () => {
                 {activeModal === 'jobPostings' && 'Job postings you\'ve added to track opportunities.'}
                 {activeModal === 'builders' && 'Builders currently active in the pipeline.'}
                 {activeModal === 'hired' && 'Builders who have been successfully placed.'}
+                {activeModal === 'sector' && 'Companies in this aligned sector.'}
+                {activeModal === 'source' && 'Leads from this source, grouped by temperature.'}
               </p>
 
               {modalData.length > 0 ? (
@@ -328,6 +546,79 @@ const Overview = () => {
                       </div>
                     </div>
                   ))}
+
+                  {activeModal === 'sector' && modalData.map((company, index) => (
+                    <div key={index} className="overview__modal-item">
+                      <div className="overview__modal-item-name">
+                        {company.name}
+                      </div>
+                      <div className="overview__modal-item-detail">
+                        {company.contact && `Contact: ${company.contact}`}
+                        {company.temperature && ` | Temperature: ${company.temperature.toUpperCase()}`}
+                      </div>
+                    </div>
+                  ))}
+
+                  {activeModal === 'source' && (() => {
+                    const hotLeads = modalData.filter(l => l.lead_temperature?.toLowerCase() === 'hot');
+                    const warmLeads = modalData.filter(l => l.lead_temperature?.toLowerCase() === 'warm');
+                    const coldLeads = modalData.filter(l => l.lead_temperature?.toLowerCase() === 'cold');
+                    
+                    return (
+                      <>
+                        {hotLeads.length > 0 && (
+                          <>
+                            <div className="overview__modal-section-title">🔥 Hot Leads ({hotLeads.length})</div>
+                            {hotLeads.map((lead) => (
+                              <div key={lead.id} className="overview__modal-item">
+                                <div className="overview__modal-item-name">
+                                  {lead.contact_name} - {lead.company_name}
+                                </div>
+                                <div className="overview__modal-item-detail">
+                                  Stage: {lead.stage}
+                                  {lead.ownership && ` | Owner: ${lead.ownership}`}
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                        
+                        {warmLeads.length > 0 && (
+                          <>
+                            <div className="overview__modal-section-title">🟠 Warm Leads ({warmLeads.length})</div>
+                            {warmLeads.map((lead) => (
+                              <div key={lead.id} className="overview__modal-item">
+                                <div className="overview__modal-item-name">
+                                  {lead.contact_name} - {lead.company_name}
+                                </div>
+                                <div className="overview__modal-item-detail">
+                                  Stage: {lead.stage}
+                                  {lead.ownership && ` | Owner: ${lead.ownership}`}
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                        
+                        {coldLeads.length > 0 && (
+                          <>
+                            <div className="overview__modal-section-title">❄️ Cold Leads ({coldLeads.length})</div>
+                            {coldLeads.map((lead) => (
+                              <div key={lead.id} className="overview__modal-item">
+                                <div className="overview__modal-item-name">
+                                  {lead.contact_name} - {lead.company_name}
+                                </div>
+                                <div className="overview__modal-item-detail">
+                                  Stage: {lead.stage}
+                                  {lead.ownership && ` | Owner: ${lead.ownership}`}
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="overview__modal-empty">
