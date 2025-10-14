@@ -13,6 +13,11 @@
   margin-bottom: 1.5rem;
 }
 
+/* Action Button */
+.builders__action-buttons {
+  margin-bottom: 1.5rem;
+}
+
 /* Search Container */
 .builders__search-container {
   display: flex;
