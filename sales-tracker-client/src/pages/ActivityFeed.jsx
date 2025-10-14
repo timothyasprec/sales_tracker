@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import { activityAPI } from '../services/api';
-import PursuitLogo from '../assets/PursuitLogo';
 import '../styles/Overview.css';
 import '../styles/ActivityFeed.css';
 
@@ -139,10 +138,7 @@ const ActivityFeed = () => {
     <div className="overview">
       <header className="overview__header">
         <div className="overview__header-content">
-          <div className="overview__title-container">
-            <PursuitLogo className="overview__logo" width="140" height="50" />
-            <h1 className="overview__title">Talent & Partnership Tracker</h1>
-          </div>
+          <h1 className="overview__title">Pursuit, Talent & Partnership Tracker</h1>
           <div className="overview__user">
             <span className="overview__user-name">{user?.name}</span>
             <button
