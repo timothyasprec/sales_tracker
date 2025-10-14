@@ -159,13 +159,11 @@ const Overview = () => {
       // Count builders created by each user in last 30 days
       buildersData.forEach(builder => {
         const createdDate = new Date(builder.created_at);
-        if (createdDate >= thirtyDaysAgo) {
-          // Try to get the creator from activities or use a default
-          const creator = builder.created_by || 'System';
-          if (!contributorCounts[creator]) {
-            contributorCounts[creator] = { leads: 0, jobPosts: 0, builders: 0, updates: 0 };
+        if (createdDate >= thirtyDaysAgo && builder.ownership) {
+          if (!contributorCounts[builder.ownership]) {
+            contributorCounts[builder.ownership] = { leads: 0, jobPosts: 0, builders: 0, updates: 0 };
           }
-          contributorCounts[creator].builders++;
+          contributorCounts[builder.ownership].builders++;
         }
       });
 
@@ -298,7 +296,7 @@ const Overview = () => {
     } else if (statType === 'builders') {
       items = data.builders.filter(builder => {
         const createdDate = new Date(builder.created_at);
-        return createdDate >= thirtyDaysAgo && builder.created_by === contributor.name;
+        return createdDate >= thirtyDaysAgo && builder.ownership === contributor.name;
       });
       title = `${contributor.name}'s Builders (${items.length})`;
     } else if (statType === 'updates') {

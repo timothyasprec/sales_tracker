@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
-import { builderAPI, activityAPI, outreachAPI } from '../services/api';
+import { builderAPI, activityAPI, outreachAPI, userAPI } from '../services/api';
 import { exportBuildersToCSV } from '../utils/csvExport';
 import '../styles/Overview.css';
 import '../styles/Builders.css';
@@ -15,6 +15,7 @@ const Builders = () => {
   const [filteredBuilders, setFilteredBuilders] = useState([]);
   const [cohorts, setCohorts] = useState([]);
   const [leads, setLeads] = useState([]); // Store all leads for matching
+  const [staffMembers, setStaffMembers] = useState([]); // For ownership dropdown
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCohort, setSelectedCohort] = useState('all');
@@ -46,6 +47,7 @@ const Builders = () => {
     role: '',
     skills: '',
     created_date: new Date().toISOString().split('T')[0],
+    ownership: '',
     notes: '',
     next_steps: '',
     job_search_status: 'building_resume',
@@ -59,6 +61,7 @@ const Builders = () => {
 
   useEffect(() => {
     fetchData();
+    fetchStaffMembers();
   }, []);
 
   useEffect(() => {
@@ -97,6 +100,16 @@ const Builders = () => {
       console.error('Error fetching builders:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStaffMembers = async () => {
+    try {
+      const users = await userAPI.getAllUsers();
+      // Include all active users for ownership dropdown
+      setStaffMembers(users.filter(u => u.is_active !== false));
+    } catch (error) {
+      console.error('Error fetching staff:', error);
     }
   };
 
@@ -702,6 +715,25 @@ const Builders = () => {
                       className="form-input"
                       required
                     />
+                  </div>
+
+                  {/* Ownership Field */}
+                  <div className="form-section">
+                    <label className="form-label">Ownership *</label>
+                    <p className="form-help-text">Please select your name below</p>
+                    <select
+                      value={newBuilderForm.ownership}
+                      onChange={(e) => setNewBuilderForm({...newBuilderForm, ownership: e.target.value})}
+                      className="form-select"
+                      required
+                    >
+                      <option value="">Select Team Member</option>
+                      {staffMembers.map((member) => (
+                        <option key={member.id} value={member.name}>
+                          {member.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="form-row">
