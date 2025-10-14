@@ -48,7 +48,12 @@ const QuickActions = () => {
     portfolio_url: '',
     years_experience: '',
     education: '',
-    aligned_sector: '',
+    university: '',
+    major: '',
+    education_completed: false,
+    date_of_birth: '',
+    aligned_sector: [],
+    sector_alignment_notes: '',
     role: '',
     skills: ''
   });
@@ -144,7 +149,12 @@ const QuickActions = () => {
       portfolio_url: '',
       years_experience: '',
       education: '',
-      aligned_sector: '',
+      university: '',
+      major: '',
+      education_completed: false,
+      date_of_birth: '',
+      aligned_sector: [],
+      sector_alignment_notes: '',
       role: '',
       skills: ''
     });
@@ -819,7 +829,17 @@ const QuickActions = () => {
                   </div>
                 </div>
 
+                {/* Date of Birth */}
                 <div className="form-row">
+                  <div className="form-section">
+                    <label className="form-label">Date of Birth</label>
+                    <input
+                      type="date"
+                      value={newBuilderForm.date_of_birth}
+                      onChange={(e) => setNewBuilderForm({...newBuilderForm, date_of_birth: e.target.value})}
+                      className="form-input"
+                    />
+                  </div>
                   <div className="form-section">
                     <label className="form-label">Education Level</label>
                     <select
@@ -833,19 +853,80 @@ const QuickActions = () => {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                {/* University and Major */}
+                <div className="form-row">
                   <div className="form-section">
-                    <label className="form-label">Aligned Sector</label>
-                    <select
-                      value={newBuilderForm.aligned_sector}
-                      onChange={(e) => setNewBuilderForm({...newBuilderForm, aligned_sector: e.target.value})}
-                      className="form-select"
-                    >
-                      <option value="">Select Sector</option>
-                      {sectors.map(sector => (
-                        <option key={sector} value={sector}>{sector}</option>
-                      ))}
-                    </select>
+                    <label className="form-label">University Name</label>
+                    <input
+                      type="text"
+                      value={newBuilderForm.university}
+                      onChange={(e) => setNewBuilderForm({...newBuilderForm, university: e.target.value})}
+                      className="form-input"
+                      placeholder="e.g., City University of New York"
+                    />
                   </div>
+                  <div className="form-section">
+                    <label className="form-label">Major/Field of Study</label>
+                    <input
+                      type="text"
+                      value={newBuilderForm.major}
+                      onChange={(e) => setNewBuilderForm({...newBuilderForm, major: e.target.value})}
+                      className="form-input"
+                      placeholder="e.g., Computer Science"
+                    />
+                  </div>
+                </div>
+
+                {/* Education Completed */}
+                <div className="form-section">
+                  <label className="form-checkbox-container">
+                    <input
+                      type="checkbox"
+                      checked={newBuilderForm.education_completed}
+                      onChange={(e) => setNewBuilderForm({...newBuilderForm, education_completed: e.target.checked})}
+                      className="form-checkbox"
+                    />
+                    <span className="form-checkbox-label">Education Completed</span>
+                  </label>
+                </div>
+
+                {/* Aligned Sectors - Multi-select */}
+                <div className="form-section">
+                  <label className="form-label">Aligned Sectors *</label>
+                  <p className="form-help-text">Select all sectors where this builder would be a good fit</p>
+                  <div className="sector-checkboxes">
+                    {sectors.map(sector => (
+                      <label key={sector} className="sector-checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={newBuilderForm.aligned_sector.includes(sector)}
+                          onChange={(e) => {
+                            const updatedSectors = e.target.checked
+                              ? [...newBuilderForm.aligned_sector, sector]
+                              : newBuilderForm.aligned_sector.filter(s => s !== sector);
+                            setNewBuilderForm({...newBuilderForm, aligned_sector: updatedSectors});
+                          }}
+                          className="sector-checkbox"
+                        />
+                        <span className="sector-checkbox-text">{sector}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sector Alignment Notes */}
+                <div className="form-section">
+                  <label className="form-label">Sector Alignment Notes</label>
+                  <p className="form-help-text">Explain why this builder would be a good fit for the selected sectors</p>
+                  <textarea
+                    value={newBuilderForm.sector_alignment_notes}
+                    onChange={(e) => setNewBuilderForm({...newBuilderForm, sector_alignment_notes: e.target.value})}
+                    className="form-textarea"
+                    rows="3"
+                    placeholder="e.g., Has experience with healthcare APIs and regulatory compliance, strong interest in fintech..."
+                  />
                 </div>
 
                 <div className="form-section">

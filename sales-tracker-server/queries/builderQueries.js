@@ -65,15 +65,25 @@ const createBuilder = async (builderData) => {
     bio,
     linkedin_url,
     github_url,
-    portfolio_url
+    portfolio_url,
+    years_of_experience,
+    education,
+    university,
+    major,
+    education_completed,
+    date_of_birth,
+    aligned_sector,
+    sector_alignment_notes
   } = builderData;
 
   const query = `
     INSERT INTO builders (
       name, email, cohort, role, skills, status, bio,
-      linkedin_url, github_url, portfolio_url
+      linkedin_url, github_url, portfolio_url, years_of_experience,
+      education, university, major, education_completed, date_of_birth,
+      aligned_sector, sector_alignment_notes
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
     RETURNING *
   `;
 
@@ -87,7 +97,15 @@ const createBuilder = async (builderData) => {
     bio,
     linkedin_url,
     github_url,
-    portfolio_url
+    portfolio_url,
+    years_of_experience || null,
+    education || null,
+    university || null,
+    major || null,
+    education_completed || false,
+    date_of_birth || null,
+    JSON.stringify(aligned_sector || []),
+    sector_alignment_notes || null
   ];
 
   const result = await pool.query(query, values);
@@ -102,7 +120,9 @@ const updateBuilder = async (id, updateData) => {
 
   const allowedFields = [
     'name', 'email', 'cohort', 'role', 'skills', 'status',
-    'bio', 'linkedin_url', 'github_url', 'portfolio_url'
+    'bio', 'linkedin_url', 'github_url', 'portfolio_url',
+    'years_of_experience', 'education', 'university', 'major',
+    'education_completed', 'date_of_birth', 'sector_alignment_notes'
   ];
 
   allowedFields.forEach(field => {
@@ -112,6 +132,13 @@ const updateBuilder = async (id, updateData) => {
       paramCount++;
     }
   });
+
+  // Handle aligned_sector separately as it needs JSON stringification
+  if (updateData.aligned_sector !== undefined) {
+    fields.push(`aligned_sector = $${paramCount}`);
+    values.push(JSON.stringify(updateData.aligned_sector));
+    paramCount++;
+  }
 
   if (fields.length === 0) {
     return await getBuilderById(id);
