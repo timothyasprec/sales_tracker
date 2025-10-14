@@ -381,12 +381,6 @@ const Overview = () => {
         >
           Activity Feed
         </button>
-        <button 
-          className="overview__nav-item"
-          onClick={() => navigate('/actions')}
-        >
-          Quick Actions
-        </button>
       </nav>
 
       <main className="overview__main">

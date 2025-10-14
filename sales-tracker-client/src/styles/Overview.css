@@ -9,6 +9,9 @@
   background-color: #ffffff;
   border-bottom: 1px solid #f0f0f0;
   padding: 24px 48px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .overview__header-content {
@@ -66,6 +69,9 @@
   gap: 0;
   max-width: 1400px;
   margin: 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 99;
 }
 
 .overview__nav-item {

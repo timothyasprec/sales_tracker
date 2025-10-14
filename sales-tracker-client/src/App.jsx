@@ -7,7 +7,6 @@ import Overview from './pages/Overview';
 import AllLeads from './pages/AllLeads';
 import Builders from './pages/Builders';
 import ActivityFeed from './pages/ActivityFeed';
-import QuickActions from './pages/QuickActions';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import UserManagement from './pages/UserManagement';
@@ -50,14 +49,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <ActivityFeed />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/actions"
-            element={
-              <ProtectedRoute>
-                <QuickActions />
               </ProtectedRoute>
             }
           />
