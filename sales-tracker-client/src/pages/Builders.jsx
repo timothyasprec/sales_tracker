@@ -353,7 +353,7 @@ const Builders = () => {
           {/* Modal */}
           {activeModal && (
             <div className="modal-overlay" onClick={closeModal}>
-              <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <button className="modal-close" onClick={closeModal}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
