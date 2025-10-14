@@ -11,7 +11,8 @@ const Overview = () => {
     totalLeads: 0,
     leadsThisWeek: 0,
     activeBuilders: 34,
-    hotLeads: 0,
+    jobPostings: 0,
+    jobPostingsThisWeek: 0,
     placements: 12,
     placementGoal: 34
   });
@@ -29,22 +30,29 @@ const Overview = () => {
       const jobPostingsData = await jobPostingAPI.getAllJobPostings();
       const buildersData = await builderAPI.getAllBuilders();
 
-      // Calculate total leads (outreach + job postings)
-      const totalLeads = outreachData.length + jobPostingsData.length;
+      // Calculate total leads (only contact outreach leads from "Add New Lead" form)
+      const totalLeads = outreachData.filter(lead => 
+        lead.lead_type === 'contact' || !lead.lead_type
+      ).length;
 
-      // Calculate leads this week
+      // Calculate job postings count
+      const jobPostings = jobPostingsData.length;
+
+      // Calculate leads this week (only contact outreach)
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
       
-      const leadsThisWeek = [...outreachData, ...jobPostingsData].filter(item => {
+      const leadsThisWeek = outreachData.filter(item => {
+        const createdDate = new Date(item.created_at);
+        const isContactLead = item.lead_type === 'contact' || !item.lead_type;
+        return createdDate >= oneWeekAgo && isContactLead;
+      }).length;
+
+      // Calculate job postings this week
+      const jobPostingsThisWeek = jobPostingsData.filter(item => {
         const createdDate = new Date(item.created_at);
         return createdDate >= oneWeekAgo;
       }).length;
-
-      // Calculate hot leads (interested status in outreach)
-      const hotLeads = outreachData.filter(item => 
-        ['interested', 'meeting_scheduled', 'opportunity_created'].includes(item.status)
-      ).length;
 
       // Calculate active builders (status = 'active')
       const activeBuilders = buildersData.filter(builder => 
@@ -63,7 +71,8 @@ const Overview = () => {
         totalLeads,
         leadsThisWeek,
         activeBuilders,
-        hotLeads,
+        jobPostings,
+        jobPostingsThisWeek,
         placements,
         placementGoal
       });
@@ -177,19 +186,22 @@ const Overview = () => {
                 </div>
               </div>
 
-              {/* Hot Leads */}
+              {/* Job Postings */}
               <div className="overview__metric-card">
                 <div className="overview__metric-header">
-                  <span className="overview__metric-label">Hot Leads</span>
-                  <div className="overview__metric-icon overview__metric-icon--red">
+                  <span className="overview__metric-label">Job Postings</span>
+                  <div className="overview__metric-icon overview__metric-icon--green">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                     </svg>
                   </div>
                 </div>
-                <div className="overview__metric-value">{metrics.hotLeads}</div>
+                <div className="overview__metric-value">{metrics.jobPostings}</div>
                 <div className="overview__metric-footer">
-                  <span className="overview__metric-info">Needs follow-up</span>
+                  <span className="overview__metric-change overview__metric-change--positive">
+                    ↑ {metrics.jobPostingsThisWeek} this week
+                  </span>
                 </div>
               </div>
 
