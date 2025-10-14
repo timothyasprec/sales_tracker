@@ -255,6 +255,42 @@
   pointer-events: none;
 }
 
+/* My Leads Toggle */
+.my-leads-toggle {
+  margin-top: 0.75rem;
+}
+
+.toggle-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-button:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.toggle-button--active {
+  border-color: #3b82f6;
+  border-width: 2px;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.toggle-button--active:hover {
+  background: #bfdbfe;
+}
+
 /* Button Groups */
 .button-group {
   display: grid;

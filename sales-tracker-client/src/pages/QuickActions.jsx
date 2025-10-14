@@ -56,6 +56,7 @@ const QuickActions = () => {
   // Search results for leads
   const [leadSearchResults, setLeadSearchResults] = useState([]);
   const [allLeads, setAllLeads] = useState([]);
+  const [showMyLeadsOnly, setShowMyLeadsOnly] = useState(false);
 
   useEffect(() => {
     fetchStaffMembers();
@@ -83,16 +84,22 @@ const QuickActions = () => {
   // Handle lead search
   useEffect(() => {
     if (updateLeadForm.search.length > 1) {
-      const filtered = allLeads.filter(lead =>
+      let filtered = allLeads.filter(lead =>
         lead.company_name?.toLowerCase().includes(updateLeadForm.search.toLowerCase()) ||
         lead.contact_name?.toLowerCase().includes(updateLeadForm.search.toLowerCase()) ||
         lead.contact_email?.toLowerCase().includes(updateLeadForm.search.toLowerCase())
       );
+      
+      // Filter by ownership if "My Leads" is active
+      if (showMyLeadsOnly) {
+        filtered = filtered.filter(lead => lead.ownership === user?.name);
+      }
+      
       setLeadSearchResults(filtered.slice(0, 5));
     } else {
       setLeadSearchResults([]);
     }
-  }, [updateLeadForm.search, allLeads]);
+  }, [updateLeadForm.search, allLeads, showMyLeadsOnly, user]);
 
   const handleLogout = () => {
     logout();
@@ -141,6 +148,7 @@ const QuickActions = () => {
       role: '',
       skills: ''
     });
+    setShowMyLeadsOnly(false); // Reset the filter
   };
 
   // Add New Lead
@@ -601,37 +609,68 @@ const QuickActions = () => {
                       placeholder="Search by name, company, or email..."
                     />
                   </div>
+                  
+                  {/* My Leads Toggle */}
+                  <div className="my-leads-toggle">
+                    <button
+                      type="button"
+                      className={`toggle-button ${showMyLeadsOnly ? 'toggle-button--active' : ''}`}
+                      onClick={() => setShowMyLeadsOnly(!showMyLeadsOnly)}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ marginRight: '6px' }}>
+                        <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8 9.5c-2.67 0-8 1.34-8 4v1.5h16v-1.5c0-2.66-5.33-4-8-4z" fill="currentColor"/>
+                      </svg>
+                      My Leads Only
+                    </button>
+                  </div>
                 </div>
 
                 {/* Recent Contacts or Search Results */}
                 {!updateLeadForm.selectedLead && (
                   <div className="form-section">
                     <div className="contacts-label">
-                      {updateLeadForm.search ? 'SEARCH RESULTS' : 'RECENT CONTACTS'}
+                      {updateLeadForm.search ? 'SEARCH RESULTS' : (showMyLeadsOnly ? 'MY RECENT LEADS' : 'RECENT CONTACTS')}
                     </div>
                     <div className="contacts-list">
-                      {(updateLeadForm.search ? leadSearchResults : allLeads.slice(0, 3)).map(lead => (
-                        <button
-                          key={lead.id}
-                          type="button"
-                          className="contact-item"
-                          onClick={() => {
-                            setUpdateLeadForm({
-                              ...updateLeadForm,
-                              selectedLead: lead,
-                              stage: lead.stage || 'Initial Outreach',
-                              lead_temperature: lead.lead_temperature || 'warm',
-                              search: lead.contact_name
-                            });
-                          }}
-                        >
-                          <div className="contact-item__name">{lead.contact_name}</div>
-                          <div className="contact-item__company">{lead.company_name} - {lead.stage}</div>
-                        </button>
-                      ))}
-                      {((updateLeadForm.search && leadSearchResults.length === 0) || (!updateLeadForm.search && allLeads.length === 0)) && (
-                        <div className="contacts-empty">No contacts found</div>
-                      )}
+                      {(() => {
+                        let leadsToShow = updateLeadForm.search ? leadSearchResults : allLeads.slice(0, 5);
+                        
+                        // Filter by ownership if "My Leads" is active and no search
+                        if (showMyLeadsOnly && !updateLeadForm.search) {
+                          leadsToShow = allLeads.filter(lead => lead.ownership === user?.name).slice(0, 5);
+                        }
+                        
+                        return leadsToShow.map(lead => (
+                          <button
+                            key={lead.id}
+                            type="button"
+                            className="contact-item"
+                            onClick={() => {
+                              setUpdateLeadForm({
+                                ...updateLeadForm,
+                                selectedLead: lead,
+                                stage: lead.stage || 'Initial Outreach',
+                                lead_temperature: lead.lead_temperature || 'warm',
+                                search: lead.contact_name
+                              });
+                            }}
+                          >
+                            <div className="contact-item__name">{lead.contact_name}</div>
+                            <div className="contact-item__company">{lead.company_name} - {lead.stage}</div>
+                          </button>
+                        ));
+                      })()}
+                      {(() => {
+                        let leadsToShow = updateLeadForm.search ? leadSearchResults : allLeads;
+                        if (showMyLeadsOnly && !updateLeadForm.search) {
+                          leadsToShow = allLeads.filter(lead => lead.ownership === user?.name);
+                        }
+                        return leadsToShow.length === 0 && (
+                          <div className="contacts-empty">
+                            {showMyLeadsOnly ? 'No leads found that you own' : 'No contacts found'}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
