@@ -19,6 +19,17 @@
   align-items: center;
 }
 
+.overview__title-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.overview__logo {
+  color: #1a1a1a;
+  flex-shrink: 0;
+}
+
 .overview__title {
   font-size: 32px;
   font-weight: 700;
