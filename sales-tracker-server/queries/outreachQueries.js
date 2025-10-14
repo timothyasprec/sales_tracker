@@ -66,16 +66,21 @@ const createOutreach = async (outreachData) => {
     stage,
     ownership,
     role_consideration,
-    job_description_url
+    job_description_url,
+    aligned_sector,
+    job_title,
+    job_posting_url,
+    experience_level
   } = outreachData;
 
   const query = `
     INSERT INTO outreach (
       staff_user_id, contact_name, contact_title, contact_email, contact_phone,
       company_name, linkedin_url, contact_method, outreach_date, lead_temperature,
-      status, notes, response_notes, stage, ownership, role_consideration, job_description_url
+      status, notes, response_notes, stage, ownership, role_consideration, job_description_url,
+      aligned_sector, job_title, job_posting_url, experience_level
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
     RETURNING *
   `;
 
@@ -96,7 +101,11 @@ const createOutreach = async (outreachData) => {
     stage,
     ownership,
     role_consideration,
-    job_description_url
+    job_description_url,
+    JSON.stringify(aligned_sector || []), // Store as JSON string
+    job_title || null,
+    job_posting_url || null,
+    experience_level || null
   ];
 
   const result = await pool.query(query, values);
@@ -114,7 +123,8 @@ const updateOutreach = async (id, updateData) => {
     'contact_name', 'contact_title', 'contact_email', 'contact_phone',
     'company_name', 'linkedin_url', 'contact_method', 'outreach_date',
     'lead_temperature', 'status', 'notes', 'response_notes', 'stage',
-    'ownership', 'role_consideration', 'job_description_url'
+    'ownership', 'role_consideration', 'job_description_url',
+    'job_title', 'job_posting_url', 'experience_level'
   ];
 
   allowedFields.forEach(field => {
@@ -124,6 +134,13 @@ const updateOutreach = async (id, updateData) => {
       paramCount++;
     }
   });
+
+  // Handle aligned_sector separately as it needs JSON stringification
+  if (updateData.aligned_sector !== undefined) {
+    fields.push(`aligned_sector = $${paramCount}`);
+    values.push(JSON.stringify(updateData.aligned_sector));
+    paramCount++;
+  }
 
   if (fields.length === 0) {
     return await getOutreachById(id);

@@ -28,7 +28,12 @@ const QuickActions = () => {
     source: 'personal',
     stage: 'Initial Outreach',
     ownership: user?.name || '',
-    notes: ''
+    notes: '',
+    aligned_sector: [], // New field for matching builders
+    // Job posting specific fields
+    job_title: '',
+    job_posting_url: '',
+    experience_level: ''
   });
 
   const [updateLeadForm, setUpdateLeadForm] = useState({
@@ -131,7 +136,11 @@ const QuickActions = () => {
       source: 'personal',
       stage: 'Initial Outreach',
       ownership: user?.name || '',
-      notes: ''
+      notes: '',
+      aligned_sector: [],
+      job_title: '',
+      job_posting_url: '',
+      experience_level: ''
     });
     setUpdateLeadForm({
       search: '',
@@ -300,6 +309,19 @@ const QuickActions = () => {
     'Other'
   ];
 
+  const jobPostingSources = [
+    'LinkedIn',
+    'Indeed',
+    'Company Site',
+    'Referral'
+  ];
+
+  const experienceLevels = [
+    'Entry-Level',
+    'Mid-Level',
+    'Senior'
+  ];
+
   return (
     <div className="overview">
       <header className="overview__header">
@@ -443,147 +465,256 @@ const QuickActions = () => {
                   </div>
                 </div>
 
-                {/* Contact Name */}
-                <div className="form-section">
-                  <label className="form-label">Contact Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newLeadForm.contact_name}
-                    onChange={(e) => setNewLeadForm({...newLeadForm, contact_name: e.target.value})}
-                    className="form-input"
-                    placeholder="e.g., Sarah Chen"
-                  />
-                </div>
+                {/* Conditional Fields Based on Lead Type */}
+                {newLeadForm.lead_type === 'contact' ? (
+                  <>
+                    {/* Contact Outreach Fields */}
+                    <div className="form-section">
+                      <label className="form-label">Contact Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newLeadForm.contact_name}
+                        onChange={(e) => setNewLeadForm({...newLeadForm, contact_name: e.target.value})}
+                        className="form-input"
+                        placeholder="e.g., Sarah Chen"
+                      />
+                    </div>
 
-                {/* Company */}
-                <div className="form-section">
-                  <label className="form-label">Company *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newLeadForm.company_name}
-                    onChange={(e) => setNewLeadForm({...newLeadForm, company_name: e.target.value})}
-                    className="form-input"
-                    placeholder="e.g., TechCorp Inc."
-                  />
-                </div>
+                    <div className="form-section">
+                      <label className="form-label">Company *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newLeadForm.company_name}
+                        onChange={(e) => setNewLeadForm({...newLeadForm, company_name: e.target.value})}
+                        className="form-input"
+                        placeholder="e.g., TechCorp Inc."
+                      />
+                    </div>
 
-                {/* Role/Title and Email */}
-                <div className="form-row">
-                  <div className="form-section">
-                    <label className="form-label">Role/Title</label>
-                    <input
-                      type="text"
-                      value={newLeadForm.contact_title}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, contact_title: e.target.value})}
-                      className="form-input"
-                      placeholder="e.g., VP of Engineering"
-                    />
-                  </div>
-                  <div className="form-section">
-                    <label className="form-label">Email</label>
-                    <input
-                      type="email"
-                      value={newLeadForm.contact_email}
-                      onChange={(e) => setNewLeadForm({...newLeadForm, contact_email: e.target.value})}
-                      className="form-input"
-                      placeholder="email@company.com"
-                    />
-                  </div>
-                </div>
+                    <div className="form-row">
+                      <div className="form-section">
+                        <label className="form-label">Role/Title</label>
+                        <input
+                          type="text"
+                          value={newLeadForm.contact_title}
+                          onChange={(e) => setNewLeadForm({...newLeadForm, contact_title: e.target.value})}
+                          className="form-input"
+                          placeholder="e.g., VP of Engineering"
+                        />
+                      </div>
+                      <div className="form-section">
+                        <label className="form-label">Email</label>
+                        <input
+                          type="email"
+                          value={newLeadForm.contact_email}
+                          onChange={(e) => setNewLeadForm({...newLeadForm, contact_email: e.target.value})}
+                          className="form-input"
+                          placeholder="email@company.com"
+                        />
+                      </div>
+                    </div>
 
-                {/* LinkedIn URL */}
-                <div className="form-section">
-                  <label className="form-label">LinkedIn URL</label>
-                  <input
-                    type="url"
-                    value={newLeadForm.linkedin_url}
-                    onChange={(e) => setNewLeadForm({...newLeadForm, linkedin_url: e.target.value})}
-                    className="form-input"
-                    placeholder="https://linkedin.com/in/..."
-                  />
-                </div>
+                    <div className="form-section">
+                      <label className="form-label">LinkedIn URL</label>
+                      <input
+                        type="url"
+                        value={newLeadForm.linkedin_url}
+                        onChange={(e) => setNewLeadForm({...newLeadForm, linkedin_url: e.target.value})}
+                        className="form-input"
+                        placeholder="https://linkedin.com/in/..."
+                      />
+                    </div>
 
-                {/* Lead Temperature */}
-                <div className="form-section">
-                  <label className="form-label">Lead Temperature *</label>
-                  <div className="button-group button-group--three">
-                    <button
-                      type="button"
-                      className={`button-temp ${newLeadForm.lead_temperature === 'cold' ? 'button-temp--active button-temp--cold' : ''}`}
-                      onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'cold'})}
-                    >
-                      Cold
-                    </button>
-                    <button
-                      type="button"
-                      className={`button-temp ${newLeadForm.lead_temperature === 'warm' ? 'button-temp--active button-temp--warm' : ''}`}
-                      onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'warm'})}
-                    >
-                      Warm
-                    </button>
-                    <button
-                      type="button"
-                      className={`button-temp ${newLeadForm.lead_temperature === 'hot' ? 'button-temp--active button-temp--hot' : ''}`}
-                      onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'hot'})}
-                    >
-                      Hot
-                    </button>
-                  </div>
-                </div>
+                    <div className="form-section">
+                      <label className="form-label">Lead Temperature *</label>
+                      <div className="button-group button-group--three">
+                        <button
+                          type="button"
+                          className={`button-temp ${newLeadForm.lead_temperature === 'cold' ? 'button-temp--active button-temp--cold' : ''}`}
+                          onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'cold'})}
+                        >
+                          Cold
+                        </button>
+                        <button
+                          type="button"
+                          className={`button-temp ${newLeadForm.lead_temperature === 'warm' ? 'button-temp--active button-temp--warm' : ''}`}
+                          onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'warm'})}
+                        >
+                          Warm
+                        </button>
+                        <button
+                          type="button"
+                          className={`button-temp ${newLeadForm.lead_temperature === 'hot' ? 'button-temp--active button-temp--hot' : ''}`}
+                          onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'hot'})}
+                        >
+                          Hot
+                        </button>
+                      </div>
+                    </div>
 
-                {/* Source */}
-                <div className="form-section">
-                  <label className="form-label">Source *</label>
-                  <div className="button-group button-group--three">
-                    <button
-                      type="button"
-                      className={`button-source button-source--personal ${newLeadForm.source === 'personal' ? 'button-source--active' : ''}`}
-                      onClick={() => setNewLeadForm({...newLeadForm, source: 'personal'})}
-                    >
-                      Personal Network
-                    </button>
-                    <button
-                      type="button"
-                      className={`button-source button-source--professional ${newLeadForm.source === 'professional' ? 'button-source--active' : ''}`}
-                      onClick={() => setNewLeadForm({...newLeadForm, source: 'professional'})}
-                    >
-                      Professional Network
-                    </button>
-                    <button
-                      type="button"
-                      className={`button-source button-source--online ${newLeadForm.source === 'online' ? 'button-source--active' : ''}`}
-                      onClick={() => setNewLeadForm({...newLeadForm, source: 'online'})}
-                    >
-                      Online/Research
-                    </button>
-                  </div>
-                </div>
+                    <div className="form-section">
+                      <label className="form-label">Source *</label>
+                      <div className="button-group button-group--three">
+                        <button
+                          type="button"
+                          className={`button-source button-source--personal ${newLeadForm.source === 'personal' ? 'button-source--active' : ''}`}
+                          onClick={() => setNewLeadForm({...newLeadForm, source: 'personal'})}
+                        >
+                          Personal Network
+                        </button>
+                        <button
+                          type="button"
+                          className={`button-source button-source--professional ${newLeadForm.source === 'professional' ? 'button-source--active' : ''}`}
+                          onClick={() => setNewLeadForm({...newLeadForm, source: 'professional'})}
+                        >
+                          Professional Network
+                        </button>
+                        <button
+                          type="button"
+                          className={`button-source button-source--online ${newLeadForm.source === 'online' ? 'button-source--active' : ''}`}
+                          onClick={() => setNewLeadForm({...newLeadForm, source: 'online'})}
+                        >
+                          Online/Research
+                        </button>
+                      </div>
+                    </div>
 
-                {/* Initial Status */}
+                    <div className="form-section">
+                      <label className="form-label">Initial Status</label>
+                      <p className="form-help-text">Select the starting point for this lead based on your relationship</p>
+                      <select
+                        value={newLeadForm.stage}
+                        onChange={(e) => setNewLeadForm({...newLeadForm, stage: e.target.value})}
+                        className="form-select"
+                      >
+                        {stages.map(stage => (
+                          <option key={stage} value={stage}>{stage}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Job Posting Fields */}
+                    <div className="form-section">
+                      <label className="form-label">Job Title *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newLeadForm.job_title}
+                        onChange={(e) => setNewLeadForm({...newLeadForm, job_title: e.target.value, contact_name: e.target.value})}
+                        className="form-input"
+                        placeholder="e.g., Full Stack Developer"
+                      />
+                    </div>
+
+                    <div className="form-section">
+                      <label className="form-label">Company Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newLeadForm.company_name}
+                        onChange={(e) => setNewLeadForm({...newLeadForm, company_name: e.target.value})}
+                        className="form-input"
+                        placeholder="e.g., TechCorp Inc."
+                      />
+                    </div>
+
+                    <div className="form-section">
+                      <label className="form-label">Job Posting URL *</label>
+                      <input
+                        type="url"
+                        required
+                        value={newLeadForm.job_posting_url}
+                        onChange={(e) => setNewLeadForm({...newLeadForm, job_posting_url: e.target.value, linkedin_url: e.target.value})}
+                        className="form-input"
+                        placeholder="https://..."
+                      />
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-section">
+                        <label className="form-label">Date Posted</label>
+                        <input
+                          type="date"
+                          value={newLeadForm.outreach_date}
+                          onChange={(e) => setNewLeadForm({...newLeadForm, outreach_date: e.target.value})}
+                          className="form-input"
+                        />
+                      </div>
+                      <div className="form-section">
+                        <label className="form-label">Experience Level *</label>
+                        <select
+                          required
+                          value={newLeadForm.experience_level}
+                          onChange={(e) => setNewLeadForm({...newLeadForm, experience_level: e.target.value})}
+                          className="form-select"
+                        >
+                          <option value="">Select Level</option>
+                          {experienceLevels.map(level => (
+                            <option key={level} value={level}>{level}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-section">
+                      <label className="form-label">Source *</label>
+                      <select
+                        required
+                        value={newLeadForm.source}
+                        onChange={(e) => setNewLeadForm({...newLeadForm, source: e.target.value})}
+                        className="form-select"
+                      >
+                        <option value="">Select Source</option>
+                        {jobPostingSources.map(source => (
+                          <option key={source} value={source.toLowerCase()}>{source}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* Aligned Sectors - For Both Types */}
                 <div className="form-section">
-                  <label className="form-label">Initial Status</label>
-                  <p className="form-help-text">Select the starting point for this lead based on your relationship</p>
-                  <select
-                    value={newLeadForm.stage}
-                    onChange={(e) => setNewLeadForm({...newLeadForm, stage: e.target.value})}
-                    className="form-select"
-                  >
-                    {stages.map(stage => (
-                      <option key={stage} value={stage}>{stage}</option>
+                  <label className="form-label">Aligned Sectors *</label>
+                  <p className="form-help-text">Select all sectors where this lead would be a good fit</p>
+                  <div className="sector-checkboxes">
+                    {sectors.map(sector => (
+                      <label key={sector} className="sector-checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={newLeadForm.aligned_sector.includes(sector)}
+                          onChange={(e) => {
+                            const updatedSectors = e.target.checked
+                              ? [...newLeadForm.aligned_sector, sector]
+                              : newLeadForm.aligned_sector.filter(s => s !== sector);
+                            setNewLeadForm({...newLeadForm, aligned_sector: updatedSectors});
+                          }}
+                          className="sector-checkbox"
+                        />
+                        <span className="sector-checkbox-text">{sector}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
-                {/* Notes */}
+                {/* Notes / Comments - For Both Types */}
                 <div className="form-section">
-                  <label className="form-label">Notes</label>
+                  <label className="form-label">Notes / Comments</label>
+                  <p className="form-help-text">
+                    {newLeadForm.lead_type === 'contact' 
+                      ? 'Add any relevant notes about your relationship, the role, or the stage'
+                      : 'e.g., "Looks aligned with AI Builders" or "Company is known for hiring apprentices"'
+                    }
+                  </p>
                   <textarea
                     value={newLeadForm.notes}
                     onChange={(e) => setNewLeadForm({...newLeadForm, notes: e.target.value})}
                     className="form-textarea"
-                    rows="4"
+                    rows="3"
                     placeholder="Add any relevant notes..."
                   />
                 </div>
