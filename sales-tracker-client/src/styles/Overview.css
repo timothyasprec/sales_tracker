@@ -149,25 +149,25 @@
   transform: translateY(-2px);
 }
 
-/* Colored background variants - Lighter, softer colors inspired by Airtable */
+/* Colored background variants - removed, using white cards with colored icons */
 .overview__metric-card--blue {
-  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-  border-color: #80deea;
+  background: #ffffff;
+  border-color: #e0e0e0;
 }
 
 .overview__metric-card--yellow {
-  background: linear-gradient(135deg, #fff4e6 0%, #ffe0b2 100%);
-  border-color: #ffcc80;
+  background: #ffffff;
+  border-color: #e0e0e0;
 }
 
 .overview__metric-card--red {
-  background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%);
-  border-color: #f48fb1;
+  background: #ffffff;
+  border-color: #e0e0e0;
 }
 
 .overview__metric-card--green {
-  background: linear-gradient(135deg, #e8f8f5 0%, #d1f2eb 100%);
-  border-color: #a9dfbf;
+  background: #ffffff;
+  border-color: #e0e0e0;
 }
 
 .overview__metric-header {
@@ -376,6 +376,54 @@
   border-bottom: 2px solid #e0e0e0;
 }
 
+/* Contributor Modal Breakdown Styles */
+.overview__contributor-breakdown {
+  padding: 20px 0;
+}
+
+.overview__contributor-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.overview__contributor-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.overview__contributor-stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.overview__contributor-stat-info {
+  flex: 1;
+}
+
+.overview__contributor-stat-label {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.overview__contributor-stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #333;
+}
+
 /* Charts Section */
 .overview__charts {
   display: grid;
@@ -479,45 +527,104 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Pie Chart Styles */
-.overview__donut-chart {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 40px;
+/* Top 5 Contributors Stacked Bar Chart Styles */
+.overview__contributors-chart {
   min-height: 300px;
-  flex-wrap: wrap;
+  padding: 20px;
 }
 
-.overview__donut-svg {
-  width: 240px;
-  height: 240px;
-}
-
-.overview__donut-segment {
-  cursor: pointer;
-  transition: all 0.2s;
-  stroke: #ffffff;
-  stroke-width: 2;
-}
-
-.overview__donut-segment:hover {
-  opacity: 0.9;
-  filter: brightness(1.05);
-  transform: scale(1.02);
-}
-
-.overview__donut-center-text {
-  font-size: 28px;
-  font-weight: 700;
-  fill: #ffffff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.overview__donut-legend {
+.overview__contributors-content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
+}
+
+.overview__contributors-legend {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.overview__contributor-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f9f9f9;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.overview__contributor-row:hover {
+  background: #f0f0f0;
+  transform: translateX(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.overview__contributor-name {
+  min-width: 120px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  text-align: right;
+}
+
+.overview__contributor-bar-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.overview__contributor-bar {
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.overview__contributor-row:hover .overview__contributor-bar {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.overview__contributor-segment {
+  transition: all 0.2s;
+}
+
+.overview__contributor-segment:hover {
+  filter: brightness(1.1);
+}
+
+.overview__contributor-segment--leads {
+  background: #3b82f6;
+}
+
+.overview__contributor-segment--jobs {
+  background: #eab308;
+}
+
+.overview__contributor-segment--builders {
+  background: #10b981;
+}
+
+.overview__contributor-segment--updates {
+  background: #a855f7;
+}
+
+.overview__contributor-total {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: #333;
 }
 
 .overview__legend-item {
@@ -596,6 +703,15 @@
 
   .overview__metric-value {
     font-size: 32px;
+  }
+
+  .overview__contributor-name {
+    min-width: 80px;
+    font-size: 12px;
+  }
+
+  .overview__contributor-stats {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
-import { outreachAPI, jobPostingAPI, builderAPI } from '../services/api';
+import { outreachAPI, jobPostingAPI, builderAPI, activityAPI } from '../services/api';
 import '../styles/Overview.css';
 
 const Overview = () => {
@@ -20,7 +20,7 @@ const Overview = () => {
   const [activeModal, setActiveModal] = useState(null);
   const [modalData, setModalData] = useState([]);
   const [sectorData, setSectorData] = useState([]);
-  const [sourceData, setSourceData] = useState([]);
+  const [contributorData, setContributorData] = useState([]);
 
   useEffect(() => {
     fetchMetrics();
@@ -33,12 +33,14 @@ const Overview = () => {
       const outreachData = await outreachAPI.getAllOutreach();
       const jobPostingsData = await jobPostingAPI.getAllJobPostings();
       const buildersData = await builderAPI.getAllBuilders();
+      const activitiesData = await activityAPI.getAllActivities();
 
       // Store raw data for modals
       window.overviewData = {
         outreach: outreachData,
         jobPostings: jobPostingsData,
-        builders: buildersData
+        builders: buildersData,
+        activities: activitiesData
       };
 
       // Calculate total leads (only contact outreach leads from "Add New Lead" form)
@@ -120,40 +122,77 @@ const Overview = () => {
 
       setSectorData(sectorArray);
 
-      // Calculate source data for donut chart
-      const sourceCounts = {};
+      // Calculate Top 5 Contributors (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const contributorCounts = {};
+
+      // Count leads created by each user in last 30 days
       outreachData.forEach(lead => {
         if (lead.lead_type === 'contact' || !lead.lead_type) {
-          const source = lead.source || lead.contact_method || 'Unknown';
-          if (!sourceCounts[source]) {
-            sourceCounts[source] = { 
-              count: 0, 
-              hot: 0, 
-              warm: 0, 
-              cold: 0,
-              leads: [] 
-            };
+          const createdDate = new Date(lead.created_at);
+          if (createdDate >= thirtyDaysAgo && lead.ownership) {
+            if (!contributorCounts[lead.ownership]) {
+              contributorCounts[lead.ownership] = { leads: 0, jobPosts: 0, builders: 0, updates: 0 };
+            }
+            contributorCounts[lead.ownership].leads++;
           }
-          sourceCounts[source].count++;
-          sourceCounts[source].leads.push(lead);
-          
-          const temp = lead.lead_temperature?.toLowerCase() || 'cold';
-          if (temp === 'hot') sourceCounts[source].hot++;
-          else if (temp === 'warm') sourceCounts[source].warm++;
-          else sourceCounts[source].cold++;
         }
       });
 
-      const sourceArray = Object.entries(sourceCounts).map(([source, data]) => ({
-        source,
-        count: data.count,
-        hot: data.hot,
-        warm: data.warm,
-        cold: data.cold,
-        leads: data.leads
-      })).sort((a, b) => b.count - a.count);
+      // Count job postings created by each user in last 30 days
+      jobPostingsData.forEach(job => {
+        const createdDate = new Date(job.created_at);
+        if (createdDate >= thirtyDaysAgo && job.ownership) {
+          if (!contributorCounts[job.ownership]) {
+            contributorCounts[job.ownership] = { leads: 0, jobPosts: 0, builders: 0, updates: 0 };
+          }
+          contributorCounts[job.ownership].jobPosts++;
+        }
+      });
 
-      setSourceData(sourceArray);
+      // Count builders created by each user in last 30 days
+      buildersData.forEach(builder => {
+        const createdDate = new Date(builder.created_at);
+        if (createdDate >= thirtyDaysAgo) {
+          // Try to get the creator from activities or use a default
+          const creator = builder.created_by || 'System';
+          if (!contributorCounts[creator]) {
+            contributorCounts[creator] = { leads: 0, jobPosts: 0, builders: 0, updates: 0 };
+          }
+          contributorCounts[creator].builders++;
+        }
+      });
+
+      // Count updates (activity log entries) by each user in last 30 days
+      activitiesData.forEach(activity => {
+        const activityDate = new Date(activity.created_at);
+        if (activityDate >= thirtyDaysAgo && activity.user_name) {
+          if (!contributorCounts[activity.user_name]) {
+            contributorCounts[activity.user_name] = { leads: 0, jobPosts: 0, builders: 0, updates: 0 };
+          }
+          // Only count update-type activities
+          if (activity.action_type?.includes('update')) {
+            contributorCounts[activity.user_name].updates++;
+          }
+        }
+      });
+
+      // Calculate totals and sort
+      const contributorArray = Object.entries(contributorCounts).map(([name, counts]) => ({
+        name,
+        leads: counts.leads,
+        jobPosts: counts.jobPosts,
+        builders: counts.builders,
+        updates: counts.updates,
+        total: counts.leads + counts.jobPosts + counts.builders + counts.updates
+      }))
+      .filter(c => c.total > 0) // Only include contributors with activity
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5); // Top 5 only
+
+      setContributorData(contributorArray);
     } catch (error) {
       console.error('Error fetching metrics:', error);
     } finally {
@@ -205,10 +244,10 @@ const Overview = () => {
     setActiveModalTitle(`${sectorInfo.sector} - ${sectorInfo.count} Companies`);
   };
 
-  const handleSourceClick = (sourceInfo) => {
-    setModalData(sourceInfo.leads);
-    setActiveModal('source');
-    setActiveModalTitle(`${sourceInfo.source} - Temperature Breakdown`);
+  const handleContributorClick = (contributor) => {
+    setModalData(contributor);
+    setActiveModal('contributor');
+    setActiveModalTitle(`${contributor.name} - Activity Breakdown`);
   };
 
   const [activeModalTitle, setActiveModalTitle] = useState('');
@@ -361,39 +400,40 @@ const Overview = () => {
                 <div className="overview__bar-chart">
                   {sectorData.length > 0 ? (
                     <div className="overview__bar-chart-content">
-                      {sectorData.map((item, index) => {
-                        const maxCount = Math.max(...sectorData.map(s => s.count));
-                        const widthPercent = (item.count / maxCount) * 100;
-                        
-                        // Generate color gradient from cool (pastel blue) to warm (pastel orange/red)
-                        // Higher counts get warmer colors
-                        const colorPosition = (item.count / maxCount);
-                        const hue = 200 - (colorPosition * 160); // 200 (blue) to 40 (orange) to 0 (red)
-                        const saturation = 60 + (colorPosition * 20); // 60% to 80%
-                        const lightness = 75 - (colorPosition * 10); // 75% to 65%
-                        const barColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-                        
-                        return (
+                  {sectorData.map((item, index) => {
+                    const maxCount = Math.max(...sectorData.map(s => s.count));
+                    const widthPercent = (item.count / maxCount) * 100;
+                    
+                    // Generate color gradient: Green (highest) → Yellow (medium) → Red (lowest)
+                    const colorPosition = (item.count / maxCount);
+                    
+                    // Use HSL color space: 120 (green) → 60 (yellow) → 0 (red)
+                    const hue = 120 * colorPosition; // 0 (red) to 120 (green), higher count = greener
+                    const saturation = 70; // Consistent saturation for cleaner look
+                    const lightness = 65; // Consistent lightness
+                    const barColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+                    
+                    return (
+                      <div
+                        key={item.sector}
+                        className="overview__bar-item-horizontal"
+                        onClick={() => handleSectorClick(item)}
+                      >
+                        <div className="overview__bar-label-horizontal">{item.sector}</div>
+                        <div className="overview__bar-wrapper-horizontal">
                           <div
-                            key={item.sector}
-                            className="overview__bar-item-horizontal"
-                            onClick={() => handleSectorClick(item)}
+                            className="overview__bar-horizontal"
+                            style={{ 
+                              width: `${widthPercent}%`,
+                              background: `linear-gradient(90deg, ${barColor}, ${barColor})`
+                            }}
                           >
-                            <div className="overview__bar-label-horizontal">{item.sector}</div>
-                            <div className="overview__bar-wrapper-horizontal">
-                              <div
-                                className="overview__bar-horizontal"
-                                style={{ 
-                                  width: `${widthPercent}%`,
-                                  background: `linear-gradient(90deg, ${barColor}, ${barColor})`
-                                }}
-                              >
-                                <span className="overview__bar-count-horizontal">{item.count}</span>
-                              </div>
-                            </div>
+                            <span className="overview__bar-count-horizontal">{item.count}</span>
                           </div>
-                        );
-                      })}
+                        </div>
+                      </div>
+                    );
+                  })}
                     </div>
                   ) : (
                     <div className="overview__chart-empty">
@@ -403,84 +443,94 @@ const Overview = () => {
                 </div>
               </div>
 
-              {/* Donut Chart - Lead Sources */}
+              {/* Top 5 Contributors - Stacked Bar Chart */}
               <div className="overview__chart-container">
                 <div className="overview__chart-header">
-                  <h3 className="overview__chart-title">Leads by Source</h3>
-                  <p className="overview__chart-subtitle">Click on a segment to see temperature breakdown</p>
+                  <h3 className="overview__chart-title">Top 5 Contributors (Last 30 Days)</h3>
+                  <p className="overview__chart-subtitle">Leads, Job Posts, Builders, and Updates</p>
                 </div>
-                <div className="overview__donut-chart">
-                  {sourceData.length > 0 ? (
-                    <>
-                      <svg viewBox="0 0 200 200" className="overview__donut-svg">
-                        {(() => {
-                          const total = sourceData.reduce((sum, item) => sum + item.count, 0);
-                          let currentAngle = -90; // Start from top
-                          const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
-                          
-                          return sourceData.map((item, index) => {
-                            const percentage = (item.count / total) * 100;
-                            const angle = (percentage / 100) * 360;
-                            const startAngle = currentAngle;
-                            const endAngle = currentAngle + angle;
-                            
-                            // Calculate arc path
-                            const startRad = (startAngle * Math.PI) / 180;
-                            const endRad = (endAngle * Math.PI) / 180;
-                            const radius = 80;
-                            const innerRadius = 0; // Changed to 0 for full pie chart
-                            
-                            const x1 = 100 + radius * Math.cos(startRad);
-                            const y1 = 100 + radius * Math.sin(startRad);
-                            const x2 = 100 + radius * Math.cos(endRad);
-                            const y2 = 100 + radius * Math.sin(endRad);
-                            
-                            const largeArc = angle > 180 ? 1 : 0;
-                            
-                            // Pie chart path (from center)
-                            const path = `
-                              M 100 100
-                              L ${x1} ${y1}
-                              A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}
-                              Z
-                            `;
-                            
-                            currentAngle = endAngle;
-                            
-                            return (
-                              <path
-                                key={item.source}
-                                d={path}
-                                fill={colors[index % colors.length]}
-                                className="overview__donut-segment"
-                                onClick={() => handleSourceClick(item)}
-                              />
-                            );
-                          });
-                        })()}
-                        <text x="100" y="100" textAnchor="middle" dy="0.3em" className="overview__donut-center-text">
-                          {sourceData.reduce((sum, item) => sum + item.count, 0)}
-                        </text>
-                      </svg>
-                      <div className="overview__donut-legend">
-                        {sourceData.map((item, index) => {
-                          const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
-                          return (
-                            <div key={item.source} className="overview__legend-item" onClick={() => handleSourceClick(item)}>
-                              <div
-                                className="overview__legend-color"
-                                style={{ backgroundColor: colors[index % colors.length] }}
-                              ></div>
-                              <span className="overview__legend-label">{item.source}</span>
-                              <span className="overview__legend-value">{item.count}</span>
-                            </div>
-                          );
-                        })}
+                <div className="overview__contributors-chart">
+                  {contributorData.length > 0 ? (
+                    <div className="overview__contributors-content">
+                      <div className="overview__contributors-legend">
+                        <div className="overview__legend-item">
+                          <div className="overview__legend-color" style={{ backgroundColor: '#3b82f6' }}></div>
+                          <span className="overview__legend-label">Leads</span>
+                        </div>
+                        <div className="overview__legend-item">
+                          <div className="overview__legend-color" style={{ backgroundColor: '#eab308' }}></div>
+                          <span className="overview__legend-label">Job Posts</span>
+                        </div>
+                        <div className="overview__legend-item">
+                          <div className="overview__legend-color" style={{ backgroundColor: '#10b981' }}></div>
+                          <span className="overview__legend-label">Builders</span>
+                        </div>
+                        <div className="overview__legend-item">
+                          <div className="overview__legend-color" style={{ backgroundColor: '#a855f7' }}></div>
+                          <span className="overview__legend-label">Updates</span>
+                        </div>
                       </div>
-                    </>
+                      {contributorData.map((contributor, index) => {
+                        const maxTotal = Math.max(...contributorData.map(c => c.total));
+                        const widthPercent = (contributor.total / maxTotal) * 100;
+                        
+                        // Calculate segment widths as percentages of the total bar
+                        const leadsPercent = (contributor.leads / contributor.total) * 100;
+                        const jobPostsPercent = (contributor.jobPosts / contributor.total) * 100;
+                        const buildersPercent = (contributor.builders / contributor.total) * 100;
+                        const updatesPercent = (contributor.updates / contributor.total) * 100;
+                        
+                        return (
+                          <div
+                            key={contributor.name}
+                            className="overview__contributor-row"
+                            onClick={() => handleContributorClick(contributor)}
+                            title={`${contributor.name}: ${contributor.leads} leads, ${contributor.jobPosts} job posts, ${contributor.builders} builders, ${contributor.updates} updates (Total: ${contributor.total})`}
+                          >
+                            <div className="overview__contributor-name">{contributor.name}</div>
+                            <div className="overview__contributor-bar-wrapper">
+                              <div
+                                className="overview__contributor-bar"
+                                style={{ width: `${widthPercent}%` }}
+                              >
+                                {contributor.leads > 0 && (
+                                  <div
+                                    className="overview__contributor-segment overview__contributor-segment--leads"
+                                    style={{ width: `${leadsPercent}%` }}
+                                    title={`${contributor.leads} leads`}
+                                  ></div>
+                                )}
+                                {contributor.jobPosts > 0 && (
+                                  <div
+                                    className="overview__contributor-segment overview__contributor-segment--jobs"
+                                    style={{ width: `${jobPostsPercent}%` }}
+                                    title={`${contributor.jobPosts} job posts`}
+                                  ></div>
+                                )}
+                                {contributor.builders > 0 && (
+                                  <div
+                                    className="overview__contributor-segment overview__contributor-segment--builders"
+                                    style={{ width: `${buildersPercent}%` }}
+                                    title={`${contributor.builders} builders`}
+                                  ></div>
+                                )}
+                                {contributor.updates > 0 && (
+                                  <div
+                                    className="overview__contributor-segment overview__contributor-segment--updates"
+                                    style={{ width: `${updatesPercent}%` }}
+                                    title={`${contributor.updates} updates`}
+                                  ></div>
+                                )}
+                              </div>
+                              <span className="overview__contributor-total">{contributor.total}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <div className="overview__chart-empty">
-                      No source data available yet
+                      No contributor data available yet
                     </div>
                   )}
                 </div>
@@ -500,22 +550,24 @@ const Overview = () => {
                 {activeModal === 'jobPostings' && 'Job Postings Details'}
                 {activeModal === 'builders' && 'Active Builders Details'}
                 {activeModal === 'hired' && 'Hired Builders Details'}
-                {(activeModal === 'sector' || activeModal === 'source') && activeModalTitle}
+                {(activeModal === 'sector' || activeModal === 'contributor') && activeModalTitle}
               </h2>
               <button className="overview__modal-close" onClick={closeModal}>×</button>
             </div>
             <div className="overview__modal-content">
-              <div className="overview__modal-metric">{modalData.length}</div>
+              <div className="overview__modal-metric">
+                {activeModal === 'contributor' ? modalData.total : modalData.length}
+              </div>
               <p className="overview__modal-description">
                 {activeModal === 'leads' && 'Contact outreach leads from your "Add New Lead" form.'}
                 {activeModal === 'jobPostings' && 'Job postings you\'ve added to track opportunities.'}
                 {activeModal === 'builders' && 'Builders currently active in the pipeline.'}
                 {activeModal === 'hired' && 'Builders who have been successfully placed.'}
                 {activeModal === 'sector' && 'Companies in this aligned sector.'}
-                {activeModal === 'source' && 'Leads from this source, grouped by temperature.'}
+                {activeModal === 'contributor' && 'Total activity count in the last 30 days.'}
               </p>
 
-              {modalData.length > 0 ? (
+              {(Array.isArray(modalData) && modalData.length > 0) || (activeModal === 'contributor' && modalData.total > 0) ? (
                 <div className="overview__modal-list">
                   {activeModal === 'leads' && modalData.map((lead) => (
                     <div key={lead.id} className="overview__modal-item">
@@ -566,66 +618,48 @@ const Overview = () => {
                     </div>
                   ))}
 
-                  {activeModal === 'source' && (() => {
-                    const hotLeads = modalData.filter(l => l.lead_temperature?.toLowerCase() === 'hot');
-                    const warmLeads = modalData.filter(l => l.lead_temperature?.toLowerCase() === 'warm');
-                    const coldLeads = modalData.filter(l => l.lead_temperature?.toLowerCase() === 'cold');
-                    
-                    return (
-                      <>
-                        {hotLeads.length > 0 && (
-                          <>
-                            <div className="overview__modal-section-title">🔥 Hot Leads ({hotLeads.length})</div>
-                            {hotLeads.map((lead) => (
-                              <div key={lead.id} className="overview__modal-item">
-                                <div className="overview__modal-item-name">
-                                  {lead.contact_name} - {lead.company_name}
-                                </div>
-                                <div className="overview__modal-item-detail">
-                                  Stage: {lead.stage}
-                                  {lead.ownership && ` | Owner: ${lead.ownership}`}
-                                </div>
-                              </div>
-                            ))}
-                          </>
-                        )}
-                        
-                        {warmLeads.length > 0 && (
-                          <>
-                            <div className="overview__modal-section-title">🟠 Warm Leads ({warmLeads.length})</div>
-                            {warmLeads.map((lead) => (
-                              <div key={lead.id} className="overview__modal-item">
-                                <div className="overview__modal-item-name">
-                                  {lead.contact_name} - {lead.company_name}
-                                </div>
-                                <div className="overview__modal-item-detail">
-                                  Stage: {lead.stage}
-                                  {lead.ownership && ` | Owner: ${lead.ownership}`}
-                                </div>
-                              </div>
-                            ))}
-                          </>
-                        )}
-                        
-                        {coldLeads.length > 0 && (
-                          <>
-                            <div className="overview__modal-section-title">❄️ Cold Leads ({coldLeads.length})</div>
-                            {coldLeads.map((lead) => (
-                              <div key={lead.id} className="overview__modal-item">
-                                <div className="overview__modal-item-name">
-                                  {lead.contact_name} - {lead.company_name}
-                                </div>
-                                <div className="overview__modal-item-detail">
-                                  Stage: {lead.stage}
-                                  {lead.ownership && ` | Owner: ${lead.ownership}`}
-                                </div>
-                              </div>
-                            ))}
-                          </>
-                        )}
-                      </>
-                    );
-                  })()}
+                  {activeModal === 'contributor' && (
+                    <div className="overview__contributor-breakdown">
+                      <div className="overview__contributor-stats">
+                        <div className="overview__contributor-stat-item">
+                          <div className="overview__contributor-stat-icon" style={{ backgroundColor: '#3b82f6' }}>
+                            📋
+                          </div>
+                          <div className="overview__contributor-stat-info">
+                            <div className="overview__contributor-stat-label">Leads</div>
+                            <div className="overview__contributor-stat-value">{modalData.leads}</div>
+                          </div>
+                        </div>
+                        <div className="overview__contributor-stat-item">
+                          <div className="overview__contributor-stat-icon" style={{ backgroundColor: '#eab308' }}>
+                            💼
+                          </div>
+                          <div className="overview__contributor-stat-info">
+                            <div className="overview__contributor-stat-label">Job Posts</div>
+                            <div className="overview__contributor-stat-value">{modalData.jobPosts}</div>
+                          </div>
+                        </div>
+                        <div className="overview__contributor-stat-item">
+                          <div className="overview__contributor-stat-icon" style={{ backgroundColor: '#10b981' }}>
+                            👥
+                          </div>
+                          <div className="overview__contributor-stat-info">
+                            <div className="overview__contributor-stat-label">Builders</div>
+                            <div className="overview__contributor-stat-value">{modalData.builders}</div>
+                          </div>
+                        </div>
+                        <div className="overview__contributor-stat-item">
+                          <div className="overview__contributor-stat-icon" style={{ backgroundColor: '#a855f7' }}>
+                            🔄
+                          </div>
+                          <div className="overview__contributor-stat-info">
+                            <div className="overview__contributor-stat-label">Updates</div>
+                            <div className="overview__contributor-stat-value">{modalData.updates}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="overview__modal-empty">
