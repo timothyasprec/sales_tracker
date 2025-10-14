@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import { builderAPI, activityAPI } from '../services/api';
+import { exportBuildersToCSV } from '../utils/csvExport';
 import '../styles/Overview.css';
 import '../styles/Builders.css';
 import '../styles/QuickActions.css';
@@ -235,6 +236,16 @@ const Builders = () => {
                 <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
               Add Builder
+            </button>
+            <button
+              className="action-button action-button--green"
+              onClick={() => exportBuildersToCSV(filteredBuilders)}
+              disabled={filteredBuilders.length === 0}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10 3v12m0 0l-4-4m4 4l4-4M3 17h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Download CSV
             </button>
           </div>
 

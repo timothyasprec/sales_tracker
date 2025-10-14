@@ -448,7 +448,7 @@ const QuickActions = () => {
                   <div className="button-group">
                     <button
                       type="button"
-                      className={`button-option ${newLeadForm.lead_type === 'contact' ? 'button-option--active' : ''}`}
+                      className={`button-option button-option--contact ${newLeadForm.lead_type === 'contact' ? 'button-option--active' : ''}`}
                       onClick={() => setNewLeadForm({...newLeadForm, lead_type: 'contact'})}
                     >
                       <div className="button-option__title">Contact Outreach</div>
@@ -456,7 +456,7 @@ const QuickActions = () => {
                     </button>
                     <button
                       type="button"
-                      className={`button-option ${newLeadForm.lead_type === 'job' ? 'button-option--active' : ''}`}
+                      className={`button-option button-option--job ${newLeadForm.lead_type === 'job' ? 'button-option--active' : ''}`}
                       onClick={() => setNewLeadForm({...newLeadForm, lead_type: 'job'})}
                     >
                       <div className="button-option__title">Job Posting</div>

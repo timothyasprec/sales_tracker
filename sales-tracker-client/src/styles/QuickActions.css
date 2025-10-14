@@ -383,6 +383,32 @@
   background: #eff6ff;
 }
 
+/* Contact Outreach Button - Blue */
+.button-option--contact:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.button-option--contact.button-option--active {
+  border-color: #3b82f6;
+  border-width: 3px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+/* Job Posting Button - Green */
+.button-option--job:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.button-option--job.button-option--active {
+  border-color: #10b981;
+  border-width: 3px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
 .button-option__title {
   font-size: 0.9375rem;
   font-weight: 600;

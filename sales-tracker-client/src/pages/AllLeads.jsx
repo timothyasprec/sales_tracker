@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import { outreachAPI, userAPI, activityAPI } from '../services/api';
+import { exportLeadsToCSV } from '../utils/csvExport';
 import '../styles/Overview.css';
 import '../styles/AllLeads.css';
 import '../styles/QuickActions.css';
@@ -386,6 +387,16 @@ const AllLeads = () => {
               </svg>
               Update Lead Status
             </button>
+            <button
+              className="action-button action-button--green"
+              onClick={() => exportLeadsToCSV(filteredLeads)}
+              disabled={filteredLeads.length === 0}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10 3v12m0 0l-4-4m4 4l4-4M3 17h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Download CSV
+            </button>
           </div>
 
           {/* Message Display */}
@@ -514,7 +525,7 @@ const AllLeads = () => {
                       <div className="button-group">
                         <button
                           type="button"
-                          className={`button-option ${newLeadForm.lead_type === 'contact' ? 'button-option--active' : ''}`}
+                          className={`button-option button-option--contact ${newLeadForm.lead_type === 'contact' ? 'button-option--active' : ''}`}
                           onClick={() => setNewLeadForm({...newLeadForm, lead_type: 'contact'})}
                         >
                           <div className="button-option__title">Contact Outreach</div>
@@ -522,7 +533,7 @@ const AllLeads = () => {
                         </button>
                         <button
                           type="button"
-                          className={`button-option ${newLeadForm.lead_type === 'job' ? 'button-option--active' : ''}`}
+                          className={`button-option button-option--job ${newLeadForm.lead_type === 'job' ? 'button-option--active' : ''}`}
                           onClick={() => setNewLeadForm({...newLeadForm, lead_type: 'job'})}
                         >
                           <div className="button-option__title">Job Posting</div>

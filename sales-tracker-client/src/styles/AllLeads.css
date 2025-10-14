@@ -66,6 +66,27 @@
   box-shadow: 0 8px 16px rgba(168, 85, 247, 0.3);
 }
 
+.action-button--green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+}
+
+.action-button--green:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+}
+
+.action-button--green:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.action-button--green:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 /* Search Container */
 .all-leads__search-container {
   display: flex;
