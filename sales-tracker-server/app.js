@@ -19,6 +19,7 @@ const outreachRoutes = require('./routes/outreachRoutes');
 const jobPostingRoutes = require('./routes/jobPostingRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const builderRoutes = require('./routes/builderRoutes');
+const activityRoutes = require('./routes/activityRoutes');
 
 // API endpoints
 app.use('/api/auth', authRoutes);
@@ -27,6 +28,7 @@ app.use('/api/outreach', outreachRoutes);
 app.use('/api/job-postings', jobPostingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/builders', builderRoutes);
+app.use('/api/activities', activityRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

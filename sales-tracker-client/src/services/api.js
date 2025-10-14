@@ -152,11 +152,29 @@ export const builderAPI = {
   getAllCohorts: () => apiRequest('/api/builders/cohorts'),
 };
 
+// Activity API calls
+export const activityAPI = {
+  getAllActivities: (limit = 50, offset = 0) => 
+    apiRequest(`/api/activities?limit=${limit}&offset=${offset}`),
+  
+  createActivity: (activityData) => 
+    apiRequest('/api/activities', {
+      method: 'POST',
+      body: JSON.stringify(activityData),
+    }),
+  
+  getActivitiesByUser: (user_name) => 
+    apiRequest(`/api/activities/user/${user_name}`),
+  
+  getActivityStats: () => apiRequest('/api/activities/stats'),
+};
+
 export default {
   auth: authAPI,
   users: userAPI,
   outreach: outreachAPI,
   jobPostings: jobPostingAPI,
   builders: builderAPI,
+  activities: activityAPI,
 };
 

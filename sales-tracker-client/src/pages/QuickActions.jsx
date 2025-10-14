@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
-import { outreachAPI, builderAPI, userAPI } from '../services/api';
+import { outreachAPI, builderAPI, userAPI, activityAPI } from '../services/api';
 import '../styles/Overview.css';
 import '../styles/QuickActions.css';
 
@@ -149,6 +149,20 @@ const QuickActions = () => {
     setLoading(true);
     try {
       await outreachAPI.createOutreach(newLeadForm);
+      
+      // Log activity
+      await activityAPI.createActivity({
+        user_name: user.name,
+        action_type: 'added_lead',
+        entity_type: 'lead',
+        entity_name: `${newLeadForm.contact_name} - ${newLeadForm.company_name}`,
+        details: {
+          company: newLeadForm.company_name,
+          temperature: newLeadForm.lead_temperature,
+          source: newLeadForm.source
+        }
+      });
+      
       showMessage('success', 'New lead added successfully!');
       closeModal();
       fetchAllLeads(); // Refresh leads
@@ -179,6 +193,21 @@ const QuickActions = () => {
       };
 
       await outreachAPI.updateOutreach(updateLeadForm.selectedLead.id, updateData);
+      
+      // Log activity
+      await activityAPI.createActivity({
+        user_name: user.name,
+        action_type: 'updated_lead',
+        entity_type: 'lead',
+        entity_name: `${updateLeadForm.selectedLead.contact_name} - ${updateLeadForm.selectedLead.company_name}`,
+        details: {
+          old_stage: updateLeadForm.selectedLead.stage,
+          new_stage: updateLeadForm.stage,
+          temperature: updateLeadForm.lead_temperature,
+          company: updateLeadForm.selectedLead.company_name
+        }
+      });
+      
       showMessage('success', 'Lead status updated successfully!');
       closeModal();
       fetchAllLeads(); // Refresh leads
@@ -196,6 +225,20 @@ const QuickActions = () => {
     setLoading(true);
     try {
       await builderAPI.createBuilder(newBuilderForm);
+      
+      // Log activity
+      await activityAPI.createActivity({
+        user_name: user.name,
+        action_type: 'added_builder',
+        entity_type: 'builder',
+        entity_name: newBuilderForm.name,
+        details: {
+          cohort: newBuilderForm.cohort,
+          role: newBuilderForm.role,
+          aligned_sector: newBuilderForm.aligned_sector
+        }
+      });
+      
       showMessage('success', 'New builder added successfully!');
       closeModal();
     } catch (error) {
