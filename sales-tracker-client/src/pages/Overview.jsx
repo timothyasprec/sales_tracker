@@ -21,6 +21,10 @@ const Overview = () => {
   const [modalData, setModalData] = useState([]);
   const [sectorData, setSectorData] = useState([]);
   const [contributorData, setContributorData] = useState([]);
+  const [detailView, setDetailView] = useState(null); // For nested detail views
+  const [detailData, setDetailData] = useState(null); // Data for detail view
+  const [activeModalTitle, setActiveModalTitle] = useState('');
+  const [modalHistory, setModalHistory] = useState([]); // Track navigation history
 
   useEffect(() => {
     fetchMetrics();
@@ -233,11 +237,6 @@ const Overview = () => {
     }
   };
 
-  const closeModal = () => {
-    setActiveModal(null);
-    setModalData([]);
-  };
-
   const handleSectorClick = (sectorInfo) => {
     setModalData(sectorInfo.companies);
     setActiveModal('sector');
@@ -250,7 +249,100 @@ const Overview = () => {
     setActiveModalTitle(`${contributor.name} - Activity Breakdown`);
   };
 
-  const [activeModalTitle, setActiveModalTitle] = useState('');
+  const closeModal = () => {
+    setActiveModal(null);
+    setModalData([]);
+    setDetailView(null);
+    setDetailData(null);
+    setModalHistory([]);
+  };
+
+  const handleCompanyClick = (companyInfo) => {
+    // Find the full lead data for this company
+    const data = window.overviewData || { outreach: [], jobPostings: [], builders: [] };
+    const leadData = data.outreach.find(lead => 
+      lead.company_name === companyInfo.name && lead.contact_name === companyInfo.contact
+    );
+    
+    if (leadData) {
+      // Save current state to history
+      setModalHistory([{ type: activeModal, data: modalData, title: activeModalTitle }]);
+      setDetailView('lead');
+      setDetailData(leadData);
+      setActiveModalTitle(`${leadData.contact_name} - ${leadData.company_name}`);
+    }
+  };
+
+  const handleContributorStatClick = (statType, contributor) => {
+    const data = window.overviewData || { outreach: [], jobPostings: [], builders: [], activities: [] };
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    let items = [];
+    let title = '';
+    
+    if (statType === 'leads') {
+      items = data.outreach.filter(lead => {
+        const createdDate = new Date(lead.created_at);
+        return (lead.lead_type === 'contact' || !lead.lead_type) && 
+               createdDate >= thirtyDaysAgo && 
+               lead.ownership === contributor.name;
+      });
+      title = `${contributor.name}'s Leads (${items.length})`;
+    } else if (statType === 'jobPosts') {
+      items = data.jobPostings.filter(job => {
+        const createdDate = new Date(job.created_at);
+        return createdDate >= thirtyDaysAgo && job.ownership === contributor.name;
+      });
+      title = `${contributor.name}'s Job Posts (${items.length})`;
+    } else if (statType === 'builders') {
+      items = data.builders.filter(builder => {
+        const createdDate = new Date(builder.created_at);
+        return createdDate >= thirtyDaysAgo && builder.created_by === contributor.name;
+      });
+      title = `${contributor.name}'s Builders (${items.length})`;
+    } else if (statType === 'updates') {
+      items = data.activities.filter(activity => {
+        const activityDate = new Date(activity.created_at);
+        return activityDate >= thirtyDaysAgo && 
+               activity.user_name === contributor.name &&
+               activity.action_type?.includes('update');
+      });
+      title = `${contributor.name}'s Updates (${items.length})`;
+    }
+    
+    if (items.length > 0) {
+      setModalHistory([{ type: activeModal, data: modalData, title: activeModalTitle }]);
+      setDetailView(statType);
+      setDetailData(items);
+      setActiveModalTitle(title);
+    }
+  };
+
+  const handleDetailItemClick = (item, itemType) => {
+    // Save current detail view to history
+    setModalHistory(prev => [...prev, { type: detailView, data: detailData, title: activeModalTitle }]);
+    setDetailView(itemType + '_detail');
+    setDetailData(item);
+    setActiveModalTitle(
+      itemType === 'lead' ? `${item.contact_name} - ${item.company_name}` :
+      itemType === 'jobPost' ? `${item.job_title} at ${item.company_name}` :
+      itemType === 'builder' ? item.name :
+      'Details'
+    );
+  };
+
+  const goBack = () => {
+    if (modalHistory.length > 0) {
+      const previous = modalHistory[modalHistory.length - 1];
+      setActiveModal(previous.type || activeModal);
+      setModalData(previous.data);
+      setActiveModalTitle(previous.title);
+      setDetailView(null);
+      setDetailData(null);
+      setModalHistory(prev => prev.slice(0, -1));
+    }
+  };
 
   return (
     <div className="overview">
@@ -545,27 +637,37 @@ const Overview = () => {
         <div className="overview__modal-overlay" onClick={closeModal}>
           <div className="overview__modal" onClick={(e) => e.stopPropagation()}>
             <div className="overview__modal-header">
+              {modalHistory.length > 0 && (
+                <button className="overview__modal-back" onClick={goBack}>
+                  ← Back
+                </button>
+              )}
               <h2 className="overview__modal-title">
-                {activeModal === 'leads' && 'Total Leads Details'}
-                {activeModal === 'jobPostings' && 'Job Postings Details'}
-                {activeModal === 'builders' && 'Active Builders Details'}
-                {activeModal === 'hired' && 'Hired Builders Details'}
-                {(activeModal === 'sector' || activeModal === 'contributor') && activeModalTitle}
+                {!detailView && activeModal === 'leads' && 'Total Leads Details'}
+                {!detailView && activeModal === 'jobPostings' && 'Job Postings Details'}
+                {!detailView && activeModal === 'builders' && 'Active Builders Details'}
+                {!detailView && activeModal === 'hired' && 'Hired Builders Details'}
+                {!detailView && (activeModal === 'sector' || activeModal === 'contributor') && activeModalTitle}
+                {detailView && activeModalTitle}
               </h2>
               <button className="overview__modal-close" onClick={closeModal}>×</button>
             </div>
             <div className="overview__modal-content">
-              <div className="overview__modal-metric">
-                {activeModal === 'contributor' ? modalData.total : modalData.length}
-              </div>
-              <p className="overview__modal-description">
-                {activeModal === 'leads' && 'Contact outreach leads from your "Add New Lead" form.'}
-                {activeModal === 'jobPostings' && 'Job postings you\'ve added to track opportunities.'}
-                {activeModal === 'builders' && 'Builders currently active in the pipeline.'}
-                {activeModal === 'hired' && 'Builders who have been successfully placed.'}
-                {activeModal === 'sector' && 'Companies in this aligned sector.'}
-                {activeModal === 'contributor' && 'Total activity count in the last 30 days.'}
-              </p>
+              {!detailView && (
+                <>
+                  <div className="overview__modal-metric">
+                    {activeModal === 'contributor' ? modalData.total : modalData.length}
+                  </div>
+                  <p className="overview__modal-description">
+                    {activeModal === 'leads' && 'Contact outreach leads from your "Add New Lead" form.'}
+                    {activeModal === 'jobPostings' && 'Job postings you\'ve added to track opportunities.'}
+                    {activeModal === 'builders' && 'Builders currently active in the pipeline.'}
+                    {activeModal === 'hired' && 'Builders who have been successfully placed.'}
+                    {activeModal === 'sector' && 'Companies in this aligned sector. Click any company to see full details.'}
+                    {activeModal === 'contributor' && 'Total activity count in the last 30 days. Click any stat to see details.'}
+                  </p>
+                </>
+              )}
 
               {(Array.isArray(modalData) && modalData.length > 0) || (activeModal === 'contributor' && modalData.total > 0) ? (
                 <div className="overview__modal-list">
@@ -606,10 +708,15 @@ const Overview = () => {
                     </div>
                   ))}
 
-                  {activeModal === 'sector' && modalData.map((company, index) => (
-                    <div key={index} className="overview__modal-item">
+                  {activeModal === 'sector' && !detailView && modalData.map((company, index) => (
+                    <div 
+                      key={index} 
+                      className="overview__modal-item overview__modal-item--clickable"
+                      onClick={() => handleCompanyClick(company)}
+                    >
                       <div className="overview__modal-item-name">
                         {company.name}
+                        <span className="overview__modal-item-arrow">→</span>
                       </div>
                       <div className="overview__modal-item-detail">
                         {company.contact && `Contact: ${company.contact}`}
@@ -618,10 +725,14 @@ const Overview = () => {
                     </div>
                   ))}
 
-                  {activeModal === 'contributor' && (
+                  {activeModal === 'contributor' && !detailView && (
                     <div className="overview__contributor-breakdown">
                       <div className="overview__contributor-stats">
-                        <div className="overview__contributor-stat-item">
+                        <div 
+                          className="overview__contributor-stat-item overview__contributor-stat-item--clickable"
+                          onClick={() => modalData.leads > 0 && handleContributorStatClick('leads', modalData)}
+                          style={{ cursor: modalData.leads > 0 ? 'pointer' : 'default', opacity: modalData.leads > 0 ? 1 : 0.5 }}
+                        >
                           <div className="overview__contributor-stat-icon" style={{ backgroundColor: '#3b82f6' }}>
                             📋
                           </div>
@@ -629,8 +740,13 @@ const Overview = () => {
                             <div className="overview__contributor-stat-label">Leads</div>
                             <div className="overview__contributor-stat-value">{modalData.leads}</div>
                           </div>
+                          {modalData.leads > 0 && <span className="overview__stat-arrow">→</span>}
                         </div>
-                        <div className="overview__contributor-stat-item">
+                        <div 
+                          className="overview__contributor-stat-item overview__contributor-stat-item--clickable"
+                          onClick={() => modalData.jobPosts > 0 && handleContributorStatClick('jobPosts', modalData)}
+                          style={{ cursor: modalData.jobPosts > 0 ? 'pointer' : 'default', opacity: modalData.jobPosts > 0 ? 1 : 0.5 }}
+                        >
                           <div className="overview__contributor-stat-icon" style={{ backgroundColor: '#eab308' }}>
                             💼
                           </div>
@@ -638,8 +754,13 @@ const Overview = () => {
                             <div className="overview__contributor-stat-label">Job Posts</div>
                             <div className="overview__contributor-stat-value">{modalData.jobPosts}</div>
                           </div>
+                          {modalData.jobPosts > 0 && <span className="overview__stat-arrow">→</span>}
                         </div>
-                        <div className="overview__contributor-stat-item">
+                        <div 
+                          className="overview__contributor-stat-item overview__contributor-stat-item--clickable"
+                          onClick={() => modalData.builders > 0 && handleContributorStatClick('builders', modalData)}
+                          style={{ cursor: modalData.builders > 0 ? 'pointer' : 'default', opacity: modalData.builders > 0 ? 1 : 0.5 }}
+                        >
                           <div className="overview__contributor-stat-icon" style={{ backgroundColor: '#10b981' }}>
                             👥
                           </div>
@@ -647,8 +768,13 @@ const Overview = () => {
                             <div className="overview__contributor-stat-label">Builders</div>
                             <div className="overview__contributor-stat-value">{modalData.builders}</div>
                           </div>
+                          {modalData.builders > 0 && <span className="overview__stat-arrow">→</span>}
                         </div>
-                        <div className="overview__contributor-stat-item">
+                        <div 
+                          className="overview__contributor-stat-item overview__contributor-stat-item--clickable"
+                          onClick={() => modalData.updates > 0 && handleContributorStatClick('updates', modalData)}
+                          style={{ cursor: modalData.updates > 0 ? 'pointer' : 'default', opacity: modalData.updates > 0 ? 1 : 0.5 }}
+                        >
                           <div className="overview__contributor-stat-icon" style={{ backgroundColor: '#a855f7' }}>
                             🔄
                           </div>
@@ -656,8 +782,258 @@ const Overview = () => {
                             <div className="overview__contributor-stat-label">Updates</div>
                             <div className="overview__contributor-stat-value">{modalData.updates}</div>
                           </div>
+                          {modalData.updates > 0 && <span className="overview__stat-arrow">→</span>}
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Detail Views for Nested Navigation */}
+                  {detailView === 'lead' && detailData && (
+                    <div className="overview__detail-view">
+                      <div className="overview__detail-section">
+                        <h3>Lead Information</h3>
+                        <div className="overview__detail-grid">
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Contact:</span>
+                            <span className="overview__detail-value">{detailData.contact_name}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Company:</span>
+                            <span className="overview__detail-value">{detailData.company_name}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Email:</span>
+                            <span className="overview__detail-value">{detailData.contact_email || 'N/A'}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">LinkedIn:</span>
+                            <span className="overview__detail-value">
+                              {detailData.linkedin_url ? (
+                                <a href={detailData.linkedin_url} target="_blank" rel="noopener noreferrer">View Profile</a>
+                              ) : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Stage:</span>
+                            <span className="overview__detail-value">{detailData.stage}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Temperature:</span>
+                            <span className={`overview__temp-badge overview__temp-badge--${detailData.lead_temperature?.toLowerCase()}`}>
+                              {detailData.lead_temperature?.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Source:</span>
+                            <span className="overview__detail-value">{detailData.source || 'N/A'}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Owner:</span>
+                            <span className="overview__detail-value">{detailData.ownership || 'N/A'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {detailData.aligned_sector && (
+                        <div className="overview__detail-section">
+                          <h3>Aligned Sectors</h3>
+                          <div className="overview__detail-tags">
+                            {(typeof detailData.aligned_sector === 'string' 
+                              ? JSON.parse(detailData.aligned_sector || '[]')
+                              : detailData.aligned_sector || []
+                            ).map((sector, idx) => (
+                              <span key={idx} className="overview__detail-tag">{sector}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {detailData.next_steps && (
+                        <div className="overview__detail-section">
+                          <h3>Next Steps</h3>
+                          <p className="overview__detail-text">{detailData.next_steps}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {detailView === 'leads' && Array.isArray(detailData) && (
+                    <div className="overview__detail-list">
+                      {detailData.map((lead) => (
+                        <div 
+                          key={lead.id} 
+                          className="overview__modal-item overview__modal-item--clickable"
+                          onClick={() => handleDetailItemClick(lead, 'lead')}
+                        >
+                          <div className="overview__modal-item-name">
+                            {lead.contact_name} - {lead.company_name}
+                            <span className="overview__modal-item-arrow">→</span>
+                          </div>
+                          <div className="overview__modal-item-detail">
+                            Stage: {lead.stage} | Temperature: {lead.lead_temperature?.toUpperCase()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {detailView === 'jobPosts' && Array.isArray(detailData) && (
+                    <div className="overview__detail-list">
+                      {detailData.map((job) => (
+                        <div 
+                          key={job.id} 
+                          className="overview__modal-item overview__modal-item--clickable"
+                          onClick={() => handleDetailItemClick(job, 'jobPost')}
+                        >
+                          <div className="overview__modal-item-name">
+                            {job.job_title} at {job.company_name}
+                            <span className="overview__modal-item-arrow">→</span>
+                          </div>
+                          <div className="overview__modal-item-detail">
+                            Level: {job.experience_level} | Posted: {new Date(job.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {detailView === 'jobPost_detail' && detailData && (
+                    <div className="overview__detail-view">
+                      <div className="overview__detail-section">
+                        <h3>Job Posting Information</h3>
+                        <div className="overview__detail-grid">
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Job Title:</span>
+                            <span className="overview__detail-value">{detailData.job_title}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Company:</span>
+                            <span className="overview__detail-value">{detailData.company_name}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Experience Level:</span>
+                            <span className="overview__detail-value">{detailData.experience_level}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Job URL:</span>
+                            <span className="overview__detail-value">
+                              {detailData.job_url ? (
+                                <a href={detailData.job_url} target="_blank" rel="noopener noreferrer">View Posting</a>
+                              ) : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Source:</span>
+                            <span className="overview__detail-value">{detailData.source || 'N/A'}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Posted By:</span>
+                            <span className="overview__detail-value">{detailData.ownership || 'N/A'}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Date Posted:</span>
+                            <span className="overview__detail-value">{new Date(detailData.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {detailData.aligned_sector && (
+                        <div className="overview__detail-section">
+                          <h3>Aligned Sectors</h3>
+                          <div className="overview__detail-tags">
+                            {(typeof detailData.aligned_sector === 'string' 
+                              ? JSON.parse(detailData.aligned_sector || '[]')
+                              : detailData.aligned_sector || []
+                            ).map((sector, idx) => (
+                              <span key={idx} className="overview__detail-tag">{sector}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {detailData.notes && (
+                        <div className="overview__detail-section">
+                          <h3>Notes</h3>
+                          <p className="overview__detail-text">{detailData.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {detailView === 'builders' && Array.isArray(detailData) && (
+                    <div className="overview__detail-list">
+                      {detailData.map((builder) => (
+                        <div 
+                          key={builder.id} 
+                          className="overview__modal-item overview__modal-item--clickable"
+                          onClick={() => handleDetailItemClick(builder, 'builder')}
+                        >
+                          <div className="overview__modal-item-name">
+                            {builder.name}
+                            <span className="overview__modal-item-arrow">→</span>
+                          </div>
+                          <div className="overview__modal-item-detail">
+                            {builder.role && `Role: ${builder.role}`}
+                            {builder.cohort && ` | Cohort: ${builder.cohort}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {detailView === 'builder_detail' && detailData && (
+                    <div className="overview__detail-view">
+                      <div className="overview__detail-section">
+                        <h3>Builder Information</h3>
+                        <div className="overview__detail-grid">
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Name:</span>
+                            <span className="overview__detail-value">{detailData.name}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Email:</span>
+                            <span className="overview__detail-value">{detailData.email}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Cohort:</span>
+                            <span className="overview__detail-value">{detailData.cohort}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Role:</span>
+                            <span className="overview__detail-value">{detailData.role}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">Job Search Status:</span>
+                            <span className="overview__detail-value">{detailData.job_search_status?.replace(/_/g, ' ')}</span>
+                          </div>
+                          <div className="overview__detail-item">
+                            <span className="overview__detail-label">LinkedIn:</span>
+                            <span className="overview__detail-value">
+                              {detailData.linkedin_url ? (
+                                <a href={detailData.linkedin_url} target="_blank" rel="noopener noreferrer">View Profile</a>
+                              ) : 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      {detailData.skills && (
+                        <div className="overview__detail-section">
+                          <h3>Skills</h3>
+                          <p className="overview__detail-text">{detailData.skills}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {detailView === 'updates' && Array.isArray(detailData) && (
+                    <div className="overview__detail-list">
+                      {detailData.map((activity, idx) => (
+                        <div key={idx} className="overview__modal-item">
+                          <div className="overview__modal-item-name">
+                            {activity.action_type?.replace(/_/g, ' ')} - {activity.entity_name || activity.entity_type}
+                          </div>
+                          <div className="overview__modal-item-detail">
+                            {new Date(activity.created_at).toLocaleDateString()} at {new Date(activity.created_at).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

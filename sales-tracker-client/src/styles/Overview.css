@@ -376,6 +376,79 @@
   border-bottom: 2px solid #e0e0e0;
 }
 
+/* Modal Back Button */
+.overview__modal-back {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-right: 16px;
+}
+
+.overview__modal-back:hover {
+  background-color: #e0e0e0;
+  border-color: #ccc;
+}
+
+/* Clickable Modal Items */
+.overview__modal-item--clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.overview__modal-item--clickable:hover {
+  background-color: #f8f9fa;
+  transform: translateX(5px);
+  border-left: 3px solid #3b82f6;
+}
+
+.overview__modal-item-arrow {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #888;
+  transition: all 0.2s;
+}
+
+.overview__modal-item--clickable:hover .overview__modal-item-arrow {
+  right: 15px;
+  color: #3b82f6;
+}
+
+/* Clickable Contributor Stats */
+.overview__contributor-stat-item--clickable {
+  transition: all 0.2s;
+  position: relative;
+}
+
+.overview__contributor-stat-item--clickable:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.overview__stat-arrow {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.overview__contributor-stat-item--clickable:hover .overview__stat-arrow {
+  right: 10px;
+  color: #333;
+}
+
 /* Contributor Modal Breakdown Styles */
 .overview__contributor-breakdown {
   padding: 20px 0;
@@ -712,6 +785,128 @@
 
   .overview__contributor-stats {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Detail Views */
+.overview__detail-view {
+  padding: 20px 0;
+}
+
+.overview__detail-list {
+  padding: 20px 0;
+}
+
+.overview__detail-section {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.overview__detail-section:last-child {
+  border-bottom: none;
+}
+
+.overview__detail-section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.overview__detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.overview__detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.overview__detail-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.overview__detail-value {
+  font-size: 15px;
+  color: #333;
+  font-weight: 500;
+}
+
+.overview__detail-value a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.overview__detail-value a:hover {
+  text-decoration: underline;
+}
+
+.overview__detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.overview__detail-tag {
+  padding: 6px 14px;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.overview__detail-text {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  padding: 12px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+/* Temperature Badges for Detail View */
+.overview__temp-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.overview__temp-badge--hot {
+  background-color: #fee;
+  color: #d32f2f;
+}
+
+.overview__temp-badge--warm {
+  background-color: #fff4e6;
+  color: #f57c00;
+}
+
+.overview__temp-badge--cold {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+@media (max-width: 768px) {
+  .overview__detail-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .overview__modal-item-arrow {
+    right: 10px;
   }
 }
 
