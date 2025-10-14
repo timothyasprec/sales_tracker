@@ -17,6 +17,8 @@ const Overview = () => {
     placementGoal: 34
   });
   const [loading, setLoading] = useState(true);
+  const [activeModal, setActiveModal] = useState(null);
+  const [modalData, setModalData] = useState([]);
 
   useEffect(() => {
     fetchMetrics();
@@ -29,6 +31,13 @@ const Overview = () => {
       const outreachData = await outreachAPI.getAllOutreach();
       const jobPostingsData = await jobPostingAPI.getAllJobPostings();
       const buildersData = await builderAPI.getAllBuilders();
+
+      // Store raw data for modals
+      window.overviewData = {
+        outreach: outreachData,
+        jobPostings: jobPostingsData,
+        builders: buildersData
+      };
 
       // Calculate total leads (only contact outreach leads from "Add New Lead" form)
       const totalLeads = outreachData.filter(lead => 
@@ -86,6 +95,39 @@ const Overview = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleCardClick = (type) => {
+    const data = window.overviewData || { outreach: [], jobPostings: [], builders: [] };
+    
+    switch(type) {
+      case 'leads':
+        const leads = data.outreach.filter(lead => lead.lead_type === 'contact' || !lead.lead_type);
+        setModalData(leads);
+        setActiveModal('leads');
+        break;
+      case 'jobPostings':
+        setModalData(data.jobPostings);
+        setActiveModal('jobPostings');
+        break;
+      case 'builders':
+        const activeBuilders = data.builders.filter(builder => builder.status === 'active');
+        setModalData(activeBuilders);
+        setActiveModal('builders');
+        break;
+      case 'hired':
+        const hiredBuilders = data.builders.filter(builder => builder.status === 'placed');
+        setModalData(hiredBuilders);
+        setActiveModal('hired');
+        break;
+      default:
+        break;
+    }
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+    setModalData([]);
   };
 
   return (
@@ -147,7 +189,7 @@ const Overview = () => {
           ) : (
             <div className="overview__metrics">
               {/* Total Leads */}
-              <div className="overview__metric-card overview__metric-card--blue">
+              <div className="overview__metric-card overview__metric-card--blue" onClick={() => handleCardClick('leads')}>
                 <div className="overview__metric-header">
                   <span className="overview__metric-label">Total Leads</span>
                   <div className="overview__metric-icon overview__metric-icon--blue">
@@ -168,7 +210,7 @@ const Overview = () => {
               </div>
 
               {/* Job Postings */}
-              <div className="overview__metric-card overview__metric-card--yellow">
+              <div className="overview__metric-card overview__metric-card--yellow" onClick={() => handleCardClick('jobPostings')}>
                 <div className="overview__metric-header">
                   <span className="overview__metric-label">Job Postings</span>
                   <div className="overview__metric-icon overview__metric-icon--yellow">
@@ -187,7 +229,7 @@ const Overview = () => {
               </div>
 
               {/* Active Builders */}
-              <div className="overview__metric-card overview__metric-card--red">
+              <div className="overview__metric-card overview__metric-card--red" onClick={() => handleCardClick('builders')}>
                 <div className="overview__metric-header">
                   <span className="overview__metric-label">Active Builders</span>
                   <div className="overview__metric-icon overview__metric-icon--red">
@@ -206,7 +248,7 @@ const Overview = () => {
               </div>
 
               {/* Hired */}
-              <div className="overview__metric-card overview__metric-card--green">
+              <div className="overview__metric-card overview__metric-card--green" onClick={() => handleCardClick('hired')}>
                 <div className="overview__metric-header">
                   <span className="overview__metric-label">Hired</span>
                   <div className="overview__metric-icon overview__metric-icon--green">
@@ -225,6 +267,77 @@ const Overview = () => {
           )}
         </div>
       </main>
+
+      {/* Modal */}
+      {activeModal && (
+        <div className="overview__modal-overlay" onClick={closeModal}>
+          <div className="overview__modal" onClick={(e) => e.stopPropagation()}>
+            <div className="overview__modal-header">
+              <h2 className="overview__modal-title">
+                {activeModal === 'leads' && 'Total Leads Details'}
+                {activeModal === 'jobPostings' && 'Job Postings Details'}
+                {activeModal === 'builders' && 'Active Builders Details'}
+                {activeModal === 'hired' && 'Hired Builders Details'}
+              </h2>
+              <button className="overview__modal-close" onClick={closeModal}>×</button>
+            </div>
+            <div className="overview__modal-content">
+              <div className="overview__modal-metric">{modalData.length}</div>
+              <p className="overview__modal-description">
+                {activeModal === 'leads' && 'Contact outreach leads from your "Add New Lead" form.'}
+                {activeModal === 'jobPostings' && 'Job postings you\'ve added to track opportunities.'}
+                {activeModal === 'builders' && 'Builders currently active in the pipeline.'}
+                {activeModal === 'hired' && 'Builders who have been successfully placed.'}
+              </p>
+
+              {modalData.length > 0 ? (
+                <div className="overview__modal-list">
+                  {activeModal === 'leads' && modalData.map((lead) => (
+                    <div key={lead.id} className="overview__modal-item">
+                      <div className="overview__modal-item-name">
+                        {lead.contact_name} - {lead.company_name}
+                      </div>
+                      <div className="overview__modal-item-detail">
+                        Stage: {lead.stage} | Temperature: {lead.lead_temperature?.toUpperCase()}
+                        {lead.ownership && ` | Owner: ${lead.ownership}`}
+                      </div>
+                    </div>
+                  ))}
+
+                  {activeModal === 'jobPostings' && modalData.map((job) => (
+                    <div key={job.id} className="overview__modal-item">
+                      <div className="overview__modal-item-name">
+                        {job.job_title} at {job.company_name}
+                      </div>
+                      <div className="overview__modal-item-detail">
+                        Level: {job.experience_level}
+                        {job.ownership && ` | Posted by: ${job.ownership}`}
+                      </div>
+                    </div>
+                  ))}
+
+                  {(activeModal === 'builders' || activeModal === 'hired') && modalData.map((builder) => (
+                    <div key={builder.id} className="overview__modal-item">
+                      <div className="overview__modal-item-name">
+                        {builder.name}
+                      </div>
+                      <div className="overview__modal-item-detail">
+                        {builder.role && `Role: ${builder.role}`}
+                        {builder.cohort && ` | Cohort: ${builder.cohort}`}
+                        {builder.job_search_status && ` | Status: ${builder.job_search_status.replace(/_/g, ' ')}`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="overview__modal-empty">
+                  No data available yet. Start adding items to see them here!
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
