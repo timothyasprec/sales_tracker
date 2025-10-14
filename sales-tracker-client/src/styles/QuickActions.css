@@ -198,6 +198,13 @@
   margin-bottom: 0.5rem;
 }
 
+.form-help-text {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: -0.25rem 0 0.75rem 0;
+  line-height: 1.4;
+}
+
 .form-input,
 .form-select,
 .form-textarea {
@@ -345,16 +352,43 @@
   transition: all 0.2s;
 }
 
-.button-source:hover {
+/* Personal Network - Green */
+.button-source--personal:hover {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.button-source--personal.button-source--active {
+  border-color: #16a34a;
+  border-width: 2px;
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* Professional Network - Purple */
+.button-source--professional:hover {
   border-color: #9333ea;
   background: #faf5ff;
 }
 
-.button-source--active {
+.button-source--professional.button-source--active {
   border-color: #9333ea;
   border-width: 2px;
   background: #f3e8ff;
   color: #6b21a8;
+}
+
+/* Online/Research - Blue */
+.button-source--online:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.button-source--online.button-source--active {
+  border-color: #3b82f6;
+  border-width: 2px;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 /* Contacts List */

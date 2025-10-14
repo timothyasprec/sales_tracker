@@ -517,20 +517,27 @@ const QuickActions = () => {
                 {/* Source */}
                 <div className="form-section">
                   <label className="form-label">Source *</label>
-                  <div className="button-group">
+                  <div className="button-group button-group--three">
                     <button
                       type="button"
-                      className={`button-source ${newLeadForm.source === 'personal' ? 'button-source--active' : ''}`}
+                      className={`button-source button-source--personal ${newLeadForm.source === 'personal' ? 'button-source--active' : ''}`}
                       onClick={() => setNewLeadForm({...newLeadForm, source: 'personal'})}
                     >
                       Personal Network
                     </button>
                     <button
                       type="button"
-                      className={`button-source ${newLeadForm.source === 'professional' ? 'button-source--active' : ''}`}
+                      className={`button-source button-source--professional ${newLeadForm.source === 'professional' ? 'button-source--active' : ''}`}
                       onClick={() => setNewLeadForm({...newLeadForm, source: 'professional'})}
                     >
                       Professional Network
+                    </button>
+                    <button
+                      type="button"
+                      className={`button-source button-source--online ${newLeadForm.source === 'online' ? 'button-source--active' : ''}`}
+                      onClick={() => setNewLeadForm({...newLeadForm, source: 'online'})}
+                    >
+                      Online/Research
                     </button>
                   </div>
                 </div>
@@ -538,6 +545,7 @@ const QuickActions = () => {
                 {/* Initial Status */}
                 <div className="form-section">
                   <label className="form-label">Initial Status</label>
+                  <p className="form-help-text">Select the starting point for this lead based on your relationship</p>
                   <select
                     value={newLeadForm.stage}
                     onChange={(e) => setNewLeadForm({...newLeadForm, stage: e.target.value})}
