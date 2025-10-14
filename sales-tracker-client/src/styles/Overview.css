@@ -416,74 +416,70 @@
   font-size: 14px;
 }
 
-/* Bar Chart Styles */
+/* Bar Chart Styles - Horizontal */
 .overview__bar-chart {
   min-height: 300px;
 }
 
 .overview__bar-chart-content {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  height: 280px;
-  gap: 12px;
-  padding: 0 10px;
+  flex-direction: column;
+  gap: 16px;
+  padding: 10px;
 }
 
-.overview__bar-item {
-  flex: 1;
+.overview__bar-item-horizontal {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.overview__bar-item:hover .overview__bar {
-  opacity: 0.8;
-  transform: scale(1.05);
+.overview__bar-item-horizontal:hover .overview__bar-horizontal {
+  opacity: 0.85;
+  transform: scaleX(1.02);
 }
 
-.overview__bar-wrapper {
-  width: 100%;
-  height: 240px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+.overview__bar-label-horizontal {
+  font-size: 13px;
+  color: #424242;
+  font-weight: 500;
+  min-width: 120px;
+  text-align: right;
+  padding-right: 12px;
 }
 
-.overview__bar {
-  width: 100%;
-  max-width: 60px;
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-  border-radius: 4px 4px 0 0;
+.overview__bar-wrapper-horizontal {
+  flex: 1;
+  height: 36px;
+  position: relative;
+  background-color: #f5f5f5;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.overview__bar-horizontal {
+  height: 100%;
+  border-radius: 6px;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 12px;
   transition: all 0.3s;
   position: relative;
-  min-height: 30px;
+  min-width: 50px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.overview__bar-count {
+.overview__bar-count-horizontal {
   color: white;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.overview__bar-label {
-  font-size: 11px;
-  color: #424242;
-  text-align: center;
-  font-weight: 500;
-  max-width: 80px;
-  word-wrap: break-word;
-  line-height: 1.2;
-}
-
-/* Donut Chart Styles */
+/* Pie Chart Styles */
 .overview__donut-chart {
   display: flex;
   align-items: center;
@@ -494,24 +490,28 @@
 }
 
 .overview__donut-svg {
-  width: 200px;
-  height: 200px;
+  width: 240px;
+  height: 240px;
 }
 
 .overview__donut-segment {
   cursor: pointer;
   transition: all 0.2s;
+  stroke: #ffffff;
+  stroke-width: 2;
 }
 
 .overview__donut-segment:hover {
-  opacity: 0.8;
-  filter: brightness(1.1);
+  opacity: 0.9;
+  filter: brightness(1.05);
+  transform: scale(1.02);
 }
 
 .overview__donut-center-text {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  fill: #000000;
+  fill: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .overview__donut-legend {

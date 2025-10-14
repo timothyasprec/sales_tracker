@@ -361,25 +361,36 @@ const Overview = () => {
                 <div className="overview__bar-chart">
                   {sectorData.length > 0 ? (
                     <div className="overview__bar-chart-content">
-                      {sectorData.map((item) => {
+                      {sectorData.map((item, index) => {
                         const maxCount = Math.max(...sectorData.map(s => s.count));
-                        const heightPercent = (item.count / maxCount) * 100;
+                        const widthPercent = (item.count / maxCount) * 100;
+                        
+                        // Generate color gradient from cool (pastel blue) to warm (pastel orange/red)
+                        // Higher counts get warmer colors
+                        const colorPosition = (item.count / maxCount);
+                        const hue = 200 - (colorPosition * 160); // 200 (blue) to 40 (orange) to 0 (red)
+                        const saturation = 60 + (colorPosition * 20); // 60% to 80%
+                        const lightness = 75 - (colorPosition * 10); // 75% to 65%
+                        const barColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
                         
                         return (
                           <div
                             key={item.sector}
-                            className="overview__bar-item"
+                            className="overview__bar-item-horizontal"
                             onClick={() => handleSectorClick(item)}
                           >
-                            <div className="overview__bar-wrapper">
+                            <div className="overview__bar-label-horizontal">{item.sector}</div>
+                            <div className="overview__bar-wrapper-horizontal">
                               <div
-                                className="overview__bar"
-                                style={{ height: `${heightPercent}%` }}
+                                className="overview__bar-horizontal"
+                                style={{ 
+                                  width: `${widthPercent}%`,
+                                  background: `linear-gradient(90deg, ${barColor}, ${barColor})`
+                                }}
                               >
-                                <span className="overview__bar-count">{item.count}</span>
+                                <span className="overview__bar-count-horizontal">{item.count}</span>
                               </div>
                             </div>
-                            <div className="overview__bar-label">{item.sector}</div>
                           </div>
                         );
                       })}
@@ -417,24 +428,20 @@ const Overview = () => {
                             const startRad = (startAngle * Math.PI) / 180;
                             const endRad = (endAngle * Math.PI) / 180;
                             const radius = 80;
-                            const innerRadius = 50;
+                            const innerRadius = 0; // Changed to 0 for full pie chart
                             
                             const x1 = 100 + radius * Math.cos(startRad);
                             const y1 = 100 + radius * Math.sin(startRad);
                             const x2 = 100 + radius * Math.cos(endRad);
                             const y2 = 100 + radius * Math.sin(endRad);
-                            const x3 = 100 + innerRadius * Math.cos(endRad);
-                            const y3 = 100 + innerRadius * Math.sin(endRad);
-                            const x4 = 100 + innerRadius * Math.cos(startRad);
-                            const y4 = 100 + innerRadius * Math.sin(startRad);
                             
                             const largeArc = angle > 180 ? 1 : 0;
                             
+                            // Pie chart path (from center)
                             const path = `
-                              M ${x1} ${y1}
+                              M 100 100
+                              L ${x1} ${y1}
                               A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}
-                              L ${x3} ${y3}
-                              A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x4} ${y4}
                               Z
                             `;
                             
