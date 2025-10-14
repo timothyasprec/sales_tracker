@@ -279,6 +279,7 @@ const QuickActions = () => {
 
   const educationLevels = [
     'High School',
+    'Vocational',
     'Associate Degree (AA)',
     'Bachelor\'s Degree',
     'Master\'s Degree',
