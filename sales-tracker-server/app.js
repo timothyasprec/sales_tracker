@@ -1,9 +1,16 @@
 require('dotenv').config();
+console.log('✓ Environment variables loaded');
+
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
+
+console.log('✓ Dependencies loaded');
 
 const app = express();
 const PORT = process.env.PORT || 4001;
+
+console.log(`✓ Express app created, will use PORT ${PORT}`);
 
 // Middleware
 app.use(cors({
@@ -12,14 +19,27 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Morgan logging - only in development
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
+
 // Routes
+console.log('Loading routes...');
 const authRoutes = require('./routes/authRoutes');
+console.log('✓ authRoutes loaded');
 const userRoutes = require('./routes/userRoutes');
+console.log('✓ userRoutes loaded');
 const outreachRoutes = require('./routes/outreachRoutes');
+console.log('✓ outreachRoutes loaded');
 const jobPostingRoutes = require('./routes/jobPostingRoutes');
+console.log('✓ jobPostingRoutes loaded');
 const adminRoutes = require('./routes/adminRoutes');
+console.log('✓ adminRoutes loaded');
 const builderRoutes = require('./routes/builderRoutes');
+console.log('✓ builderRoutes loaded');
 const activityRoutes = require('./routes/activityRoutes');
+console.log('✓ activityRoutes loaded');
 
 // API endpoints
 app.use('/api/auth', authRoutes);
@@ -32,7 +52,14 @@ app.use('/api/activities', activityRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  console.log('🏥 Health check hit');
   res.json({ status: 'ok', message: 'Sales Tracker API is running' });
+});
+
+// Simple test endpoint
+app.get('/api/test', (req, res) => {
+  console.log('🧪 Test endpoint hit');
+  res.json({ test: 'success', timestamp: new Date().toISOString() });
 });
 
 // Error handling middleware

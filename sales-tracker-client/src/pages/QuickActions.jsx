@@ -346,25 +346,31 @@ const QuickActions = () => {
       </header>
 
       <nav className="overview__nav">
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/overview')}
         >
           Overview
         </button>
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/leads')}
         >
           All Leads
         </button>
-        <button 
+        <button
+          className="overview__nav-item"
+          onClick={() => navigate('/job-postings')}
+        >
+          Job Postings
+        </button>
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/builders')}
         >
           Builders
         </button>
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/activity')}
         >

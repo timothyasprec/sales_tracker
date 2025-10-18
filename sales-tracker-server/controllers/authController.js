@@ -4,16 +4,25 @@ const userQueries = require('../queries/userQueries');
 
 // Register new user
 const register = async (req, res) => {
+  console.log('📝 Register endpoint hit');
+  console.log('Request body:', req.body);
+
   try {
     const { name, email, password, role } = req.body;
 
     // Validate input
     if (!name || !email || !password) {
+      console.log('❌ Validation failed: missing required fields');
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
+    console.log('✓ Input validated');
+
     // Check if user already exists
+    console.log('🔍 Checking if user exists...');
     const existingUser = await userQueries.getUserByEmail(email);
+    console.log('✓ User check complete:', existingUser ? 'User exists' : 'User does not exist');
+
     if (existingUser) {
       return res.status(400).json({ error: 'User with this email already exists' });
     }

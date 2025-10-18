@@ -37,7 +37,6 @@ const createJobPosting = async (req, res) => {
       job_posting_url,
       experience_level,
       source,
-      lead_temperature,
       ownership,
       aligned_sector,
       notes
@@ -53,7 +52,6 @@ const createJobPosting = async (req, res) => {
       job_url: job_posting_url, // Map to database column name
       experience_level,
       source,
-      lead_temperature: lead_temperature || 'cold',
       ownership,
       aligned_sector,
       notes,

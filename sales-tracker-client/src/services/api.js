@@ -34,14 +34,21 @@ const apiRequest = async (endpoint, options = {}) => {
     url += `${separator}_t=${Date.now()}`;
   }
 
-  const response = await fetch(url, config);
-  const data = await response.json();
+  try {
+    const response = await fetch(url, config);
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.error || 'Something went wrong');
+    if (!response.ok) {
+      throw new Error(data.error || 'Something went wrong');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('API Request Error:', error);
+    console.error('URL:', url);
+    console.error('Config:', config);
+    throw error;
   }
-
-  return data;
 };
 
 // Auth API calls

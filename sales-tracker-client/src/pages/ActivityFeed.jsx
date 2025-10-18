@@ -38,10 +38,7 @@ const ActivityFeed = () => {
   const getActivityEmoji = (activity) => {
     switch (activity.action_type) {
       case 'added_lead':
-        const temp = activity.details?.temperature;
-        if (temp === 'hot') return '🔥';
-        if (temp === 'warm') return '☀️';
-        return '❄️';
+        return '✨';
       case 'added_job_posting':
         return '💼';
       case 'updated_lead':
@@ -82,11 +79,9 @@ const ActivityFeed = () => {
   const getActivityMessage = (activity) => {
     switch (activity.action_type) {
       case 'added_lead':
-        const temp = activity.details?.temperature;
-        const tempLabel = temp === 'hot' ? '🔥 HOT' : temp === 'warm' ? '☀️ Warm' : '❄️ Cold';
         return (
           <>
-            just added a new <strong>{tempLabel}</strong> lead: <strong>{activity.entity_name}</strong>
+            just added a new lead: <strong>{activity.entity_name}</strong>
           </>
         );
       case 'added_job_posting':
@@ -196,9 +191,6 @@ const ActivityFeed = () => {
           return null;
       }
     }
-    if (activity.action_type === 'added_lead' && activity.details?.temperature === 'hot') {
-      return 'Hot lead alert! This one\'s promising! 🎯';
-    }
     if (activity.action_type === 'added_builder') {
       return 'Welcome to the team! 🎈';
     }
@@ -255,19 +247,25 @@ const ActivityFeed = () => {
       </header>
 
       <nav className="overview__nav">
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/overview')}
         >
           Overview
         </button>
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/leads')}
         >
           All Leads
         </button>
-        <button 
+        <button
+          className="overview__nav-item"
+          onClick={() => navigate('/job-postings')}
+        >
+          Job Postings
+        </button>
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/builders')}
         >
@@ -276,7 +274,7 @@ const ActivityFeed = () => {
         <button className="overview__nav-item overview__nav-item--active">
           Activity Feed
         </button>
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/actions')}
         >

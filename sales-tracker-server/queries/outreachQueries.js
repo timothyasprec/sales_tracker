@@ -59,7 +59,6 @@ const createOutreach = async (outreachData) => {
     linkedin_url,
     contact_method,
     outreach_date,
-    lead_temperature,
     status,
     notes,
     response_notes,
@@ -68,6 +67,7 @@ const createOutreach = async (outreachData) => {
     role_consideration,
     job_description_url,
     aligned_sector,
+    source,
     job_title,
     job_posting_url,
     experience_level
@@ -76,9 +76,9 @@ const createOutreach = async (outreachData) => {
   const query = `
     INSERT INTO outreach (
       staff_user_id, contact_name, contact_title, contact_email, contact_phone,
-      company_name, linkedin_url, contact_method, outreach_date, lead_temperature,
+      company_name, linkedin_url, contact_method, outreach_date,
       status, notes, response_notes, stage, ownership, role_consideration, job_description_url,
-      aligned_sector, job_title, job_posting_url, experience_level
+      aligned_sector, source, job_title, job_posting_url, experience_level
     )
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
     RETURNING *
@@ -94,7 +94,6 @@ const createOutreach = async (outreachData) => {
     linkedin_url,
     contact_method,
     outreach_date,
-    lead_temperature,
     status,
     notes,
     response_notes,
@@ -103,6 +102,7 @@ const createOutreach = async (outreachData) => {
     role_consideration,
     job_description_url,
     JSON.stringify(aligned_sector || []), // Store as JSON string
+    JSON.stringify(source || []), // Store as JSON string
     job_title || null,
     job_posting_url || null,
     experience_level || null
@@ -122,7 +122,7 @@ const updateOutreach = async (id, updateData) => {
   const allowedFields = [
     'contact_name', 'contact_title', 'contact_email', 'contact_phone',
     'company_name', 'linkedin_url', 'contact_method', 'outreach_date',
-    'lead_temperature', 'status', 'notes', 'response_notes', 'stage',
+    'status', 'notes', 'response_notes', 'stage',
     'ownership', 'role_consideration', 'job_description_url',
     'job_title', 'job_posting_url', 'experience_level', 'next_steps'
   ];
@@ -139,6 +139,13 @@ const updateOutreach = async (id, updateData) => {
   if (updateData.aligned_sector !== undefined) {
     fields.push(`aligned_sector = $${paramCount}`);
     values.push(JSON.stringify(updateData.aligned_sector));
+    paramCount++;
+  }
+
+  // Handle source separately as it needs JSON stringification
+  if (updateData.source !== undefined) {
+    fields.push(`source = $${paramCount}`);
+    values.push(JSON.stringify(updateData.source));
     paramCount++;
   }
 

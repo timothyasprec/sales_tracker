@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
-import { outreachAPI, jobPostingAPI, userAPI, activityAPI } from '../services/api';
-import { exportLeadsToCSV, exportJobPostingsToCSV } from '../utils/csvExport';
+import { outreachAPI, userAPI, activityAPI } from '../services/api';
+import { exportLeadsToCSV } from '../utils/csvExport';
 import '../styles/Overview.css';
 import '../styles/AllLeads.css';
 import '../styles/QuickActions.css';
@@ -11,9 +11,7 @@ const AllLeads = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
-  const [jobPostings, setJobPostings] = useState([]);
   const [filteredLeads, setFilteredLeads] = useState([]);
-  const [filteredJobPostings, setFilteredJobPostings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
@@ -36,34 +34,21 @@ const AllLeads = () => {
     contact_email: '',
     linkedin_url: '',
     outreach_date: new Date().toISOString().split('T')[0],
-    lead_temperature: 'cold',
-    source: 'personal',
+    source: [],
     stage: 'Initial Outreach',
     ownership: user?.name || '',
     notes: '',
     aligned_sector: []
   });
 
-  const [newJobPostingForm, setNewJobPostingForm] = useState({
-    lead_type: 'job',
-    company_name: '',
-    job_title: '',
-    job_posting_url: '',
-    experience_level: '',
-    outreach_date: new Date().toISOString().split('T')[0],
-    lead_temperature: 'cold',
-    source: 'job_board',
-    stage: 'Job Posted',
-    ownership: user?.name || '',
-    notes: '',
-    aligned_sector: []
-  });
-  
+  const [sourceInput, setSourceInput] = useState('');
+  const [sectorInput, setSectorInput] = useState('');
+
+
   const [updateLeadForm, setUpdateLeadForm] = useState({
     search: '',
     selectedLead: null,
     stage: '',
-    lead_temperature: '',
     notes: '',
     next_steps: '',
     update_date: new Date().toISOString().split('T')[0]
@@ -74,7 +59,6 @@ const AllLeads = () => {
 
   useEffect(() => {
     fetchLeads();
-    fetchJobPostings();
     fetchStaffMembers();
   }, []);
 
@@ -121,32 +105,6 @@ const AllLeads = () => {
     }
   };
 
-  const fetchJobPostings = async () => {
-    try {
-      const data = await jobPostingAPI.getAllJobPostings();
-      
-      // Filter to show only job postings from the past 2 months
-      const twoMonthsAgo = new Date();
-      twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-      
-      const recentJobs = data.filter(job => {
-        const jobDate = new Date(job.created_at);
-        return jobDate >= twoMonthsAgo;
-      });
-      
-      // Sort by most recent
-      const sorted = recentJobs.sort((a, b) => {
-        const dateA = new Date(a.created_at || a.updated_at);
-        const dateB = new Date(b.created_at || b.updated_at);
-        return dateB - dateA;
-      });
-      
-      setJobPostings(sorted);
-      setFilteredJobPostings(sorted);
-    } catch (error) {
-      console.error('Error fetching job postings:', error);
-    }
-  };
   
   const fetchStaffMembers = async () => {
     try {
@@ -161,33 +119,79 @@ const AllLeads = () => {
   const filterLeads = () => {
     let filtered = [...leads];
 
-    // Apply search filter
+    // Apply search filter - search through names, companies, titles, tags (source), sectors, and dates
     if (searchTerm) {
-      filtered = filtered.filter(lead =>
-        lead.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lead.contact_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lead.contact_title?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      const searchLower = searchTerm.toLowerCase();
+
+      filtered = filtered.filter(lead => {
+        // Search in basic fields
+        const basicMatch =
+          lead.company_name?.toLowerCase().includes(searchLower) ||
+          lead.contact_name?.toLowerCase().includes(searchLower) ||
+          lead.contact_title?.toLowerCase().includes(searchLower) ||
+          lead.ownership?.toLowerCase().includes(searchLower);
+
+        // Search in source tags (JSONB array)
+        let sourceMatch = false;
+        try {
+          let sources = [];
+          if (lead.source) {
+            if (typeof lead.source === 'string') {
+              sources = JSON.parse(lead.source);
+            } else if (Array.isArray(lead.source)) {
+              sources = lead.source;
+            }
+          }
+          sourceMatch = sources.some(tag => tag.toLowerCase().includes(searchLower));
+        } catch (error) {
+          // If parsing fails, skip source matching
+        }
+
+        // Search in aligned_sector tags (JSONB array)
+        let sectorMatch = false;
+        try {
+          let sectors = [];
+          if (lead.aligned_sector) {
+            if (typeof lead.aligned_sector === 'string') {
+              sectors = JSON.parse(lead.aligned_sector);
+            } else if (Array.isArray(lead.aligned_sector)) {
+              sectors = lead.aligned_sector;
+            }
+          }
+          sectorMatch = sectors.some(sector => sector.toLowerCase().includes(searchLower));
+        } catch (error) {
+          // If parsing fails, skip sector matching
+        }
+
+        // Search in dates
+        const dateMatch =
+          lead.outreach_date?.includes(searchTerm) ||
+          new Date(lead.outreach_date).toLocaleDateString().includes(searchTerm) ||
+          (lead.updated_at && new Date(lead.updated_at).toLocaleDateString().includes(searchTerm));
+
+        return basicMatch || sourceMatch || sectorMatch || dateMatch;
+      });
     }
 
-    // Apply status filter
-    if (activeFilter !== 'all') {
-      if (activeFilter === 'hot') {
-        filtered = filtered.filter(lead =>
-          lead.lead_temperature?.toLowerCase() === 'hot'
-        );
-      } else if (activeFilter === 'warm') {
-        filtered = filtered.filter(lead =>
-          lead.lead_temperature?.toLowerCase() === 'warm'
-        );
-      } else if (activeFilter === 'cold') {
-        filtered = filtered.filter(lead =>
-          !lead.lead_temperature || lead.lead_temperature?.toLowerCase() === 'cold'
-        );
-      } else if (activeFilter === 'my-leads') {
-        filtered = filtered.filter(lead => lead.staff_user_id === user?.id);
-      }
+    // Apply filter and sorting
+    if (activeFilter === 'my-leads') {
+      filtered = filtered.filter(lead => lead.staff_user_id === user?.id);
+    } else if (activeFilter === 'newest') {
+      // Sort by newest first (already default, but explicit)
+      filtered = filtered.sort((a, b) => {
+        const dateA = new Date(a.updated_at || a.outreach_date);
+        const dateB = new Date(b.updated_at || b.outreach_date);
+        return dateB - dateA;
+      });
+    } else if (activeFilter === 'oldest') {
+      // Sort by oldest first
+      filtered = filtered.sort((a, b) => {
+        const dateA = new Date(a.updated_at || a.outreach_date);
+        const dateB = new Date(b.updated_at || b.outreach_date);
+        return dateA - dateB;
+      });
     }
+    // 'all' shows all leads sorted by newest (default sorting from fetchLeads)
 
     setFilteredLeads(filtered);
   };
@@ -226,30 +230,6 @@ const AllLeads = () => {
     'Not Interested'
   ];
 
-  const sectors = [
-    'Finance',
-    'Marketing',
-    'Government',
-    'Health',
-    'Technology',
-    'Education',
-    'Non-Profit',
-    'Retail',
-    'Other'
-  ];
-
-  const jobPostingSources = [
-    'LinkedIn',
-    'Indeed',
-    'Company Site',
-    'Referral'
-  ];
-
-  const experienceLevels = [
-    'Entry-Level',
-    'Mid-Level',
-    'Senior'
-  ];
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
@@ -270,32 +250,18 @@ const AllLeads = () => {
       contact_email: '',
       linkedin_url: '',
       outreach_date: new Date().toISOString().split('T')[0],
-      lead_temperature: 'cold',
-      source: 'personal',
+      source: [],
       stage: 'Initial Outreach',
       ownership: user?.name || '',
       notes: '',
       aligned_sector: []
     });
-    setNewJobPostingForm({
-      lead_type: 'job',
-      company_name: '',
-      job_title: '',
-      job_posting_url: '',
-      experience_level: '',
-      outreach_date: new Date().toISOString().split('T')[0],
-      lead_temperature: 'cold',
-      source: 'job_board',
-      stage: 'Job Posted',
-      ownership: user?.name || '',
-      notes: '',
-      aligned_sector: []
-    });
+    setSourceInput('');
+    setSectorInput('');
     setUpdateLeadForm({
       search: '',
       selectedLead: null,
       stage: '',
-      lead_temperature: '',
       notes: '',
       next_steps: '',
       update_date: new Date().toISOString().split('T')[0]
@@ -393,7 +359,6 @@ const AllLeads = () => {
         entity_name: `${newLeadForm.contact_name} - ${newLeadForm.company_name}`,
         details: {
           company: newLeadForm.company_name,
-          temperature: newLeadForm.lead_temperature,
           source: newLeadForm.source
         }
       });
@@ -409,35 +374,6 @@ const AllLeads = () => {
     }
   };
 
-  const handleAddJobPosting = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await jobPostingAPI.createJobPosting(newJobPostingForm);
-      
-      await activityAPI.createActivity({
-        user_name: user.name,
-        action_type: 'added_job_posting',
-        entity_type: 'job_posting',
-        entity_name: `${newJobPostingForm.job_title} - ${newJobPostingForm.company_name}`,
-        details: {
-          company: newJobPostingForm.company_name,
-          job_title: newJobPostingForm.job_title,
-          experience_level: newJobPostingForm.experience_level,
-          temperature: newJobPostingForm.lead_temperature
-        }
-      });
-      
-      showMessage('success', 'Job posting added successfully!');
-      closeModal();
-      fetchJobPostings();
-    } catch (error) {
-      showMessage('error', 'Failed to add job posting. Please try again.');
-      console.error('Error adding job posting:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDeleteLead = async (leadId, leadName) => {
     if (!window.confirm(`Are you sure you want to delete "${leadName}"? This action cannot be undone.`)) {
@@ -466,32 +402,6 @@ const AllLeads = () => {
     }
   };
 
-  const handleDeleteJobPosting = async (jobId, jobName) => {
-    if (!window.confirm(`Are you sure you want to delete "${jobName}"? This action cannot be undone.`)) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await jobPostingAPI.deleteJobPosting(jobId);
-      
-      await activityAPI.createActivity({
-        user_name: user.name,
-        action_type: 'deleted_job_posting',
-        entity_type: 'job_posting',
-        entity_name: jobName,
-        details: {}
-      });
-      
-      showMessage('success', 'Job posting deleted successfully!');
-      fetchJobPostings();
-    } catch (error) {
-      showMessage('error', 'Failed to delete job posting. Please try again.');
-      console.error('Error deleting job posting:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleUpdateLead = async (e) => {
     e.preventDefault();
@@ -509,15 +419,14 @@ const AllLeads = () => {
       
       const updateData = {
         stage: updateLeadForm.stage,
-        lead_temperature: updateLeadForm.lead_temperature,
         next_steps: updateLeadForm.next_steps,
-        notes: updateLeadForm.selectedLead.notes 
+        notes: updateLeadForm.selectedLead.notes
           ? `${updateLeadForm.selectedLead.notes}\n\n[${updateDate}] ${updateLeadForm.notes}`
           : `[${updateDate}] ${updateLeadForm.notes}`
       };
 
       await outreachAPI.updateOutreach(updateLeadForm.selectedLead.id, updateData);
-      
+
       await activityAPI.createActivity({
         user_name: user.name,
         action_type: 'updated_lead',
@@ -526,7 +435,6 @@ const AllLeads = () => {
         details: {
           old_stage: updateLeadForm.selectedLead.stage,
           new_stage: updateLeadForm.stage,
-          temperature: updateLeadForm.lead_temperature,
           company: updateLeadForm.selectedLead.company_name
         }
       });
@@ -565,7 +473,7 @@ const AllLeads = () => {
       </header>
 
       <nav className="overview__nav">
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/overview')}
         >
@@ -574,19 +482,25 @@ const AllLeads = () => {
         <button className="overview__nav-item overview__nav-item--active">
           All Leads
         </button>
-        <button 
+        <button
+          className="overview__nav-item"
+          onClick={() => navigate('/job-postings')}
+        >
+          Job Postings
+        </button>
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/builders')}
         >
           Builders
         </button>
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/activity')}
         >
           Activity Feed
         </button>
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/actions')}
         >
@@ -646,7 +560,7 @@ const AllLeads = () => {
               <input
                 type="text"
                 className="all-leads__search-input"
-                placeholder="Search leads, companies, or contacts..."
+                placeholder="Search by name, company, sector, source tags, or date..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -668,22 +582,16 @@ const AllLeads = () => {
               All Leads
             </button>
             <button
-              className={`all-leads__tab ${activeFilter === 'hot' ? 'all-leads__tab--active' : ''}`}
-              onClick={() => setActiveFilter('hot')}
+              className={`all-leads__tab ${activeFilter === 'newest' ? 'all-leads__tab--active' : ''}`}
+              onClick={() => setActiveFilter('newest')}
             >
-              Hot
+              Newest
             </button>
             <button
-              className={`all-leads__tab ${activeFilter === 'warm' ? 'all-leads__tab--active' : ''}`}
-              onClick={() => setActiveFilter('warm')}
+              className={`all-leads__tab ${activeFilter === 'oldest' ? 'all-leads__tab--active' : ''}`}
+              onClick={() => setActiveFilter('oldest')}
             >
-              Warm
-            </button>
-            <button
-              className={`all-leads__tab ${activeFilter === 'cold' ? 'all-leads__tab--active' : ''}`}
-              onClick={() => setActiveFilter('cold')}
-            >
-              Cold
+              Oldest
             </button>
             <button
               className={`all-leads__tab ${activeFilter === 'my-leads' ? 'all-leads__tab--active' : ''}`}
@@ -693,7 +601,7 @@ const AllLeads = () => {
             </button>
           </div>
 
-          {/* Two-Column Layout: Contact Leads + Job Postings */}
+          {/* Contact Leads List */}
           {loading ? (
             <div className="all-leads__loading">Loading leads...</div>
           ) : filteredLeads.length === 0 ? (
@@ -701,13 +609,10 @@ const AllLeads = () => {
               <p>No leads found. {searchTerm && 'Try a different search term.'}</p>
             </div>
           ) : (
-            <div className="all-leads__split-view">
-              {/* Main Section - Contact Leads (3/4 width) */}
-              <div className="all-leads__main-section">
-                <div className="all-leads__list">
-                  {filteredLeads
-                    .filter(lead => lead.lead_type === 'contact' || !lead.lead_type) // Contact outreach leads
-                    .map(lead => (
+            <div className="all-leads__list">
+              {filteredLeads
+                .filter(lead => lead.lead_type === 'contact' || !lead.lead_type) // Contact outreach leads
+                .map(lead => (
                 <div key={lead.id} className="all-leads__card">
                   <div className="all-leads__card-content">
                     <div className="all-leads__card-header">
@@ -715,9 +620,6 @@ const AllLeads = () => {
                         <h3 className="all-leads__card-name">
                           {lead.contact_name || 'Unknown Contact'}
                         </h3>
-                        <span className={`all-leads__temp-badge all-leads__temp-badge--${(lead.lead_temperature || 'cold').toLowerCase()}`}>
-                          {(lead.lead_temperature || 'cold').toUpperCase()}
-                        </span>
                         <span className="all-leads__source-badge">
                           {lead.contact_method || 'Professional Network'}
                         </span>
@@ -789,139 +691,6 @@ const AllLeads = () => {
                   </div>
                 </div>
               ))}
-                </div>
-              </div>
-
-              {/* Sidebar - Job Postings (1/4 width) */}
-              <div className="all-leads__sidebar-section">
-                <div className="all-leads__sidebar-header">
-                  <div className="all-leads__sidebar-header-left">
-                    <h3 className="all-leads__sidebar-title">Job Postings</h3>
-                    <span className="all-leads__sidebar-count">
-                      {filteredJobPostings.length}
-                    </span>
-                  </div>
-                  <button
-                    className="all-leads__download-jobs-btn"
-                    onClick={() => exportJobPostingsToCSV(filteredJobPostings)}
-                    disabled={filteredJobPostings.length === 0}
-                    title="Download job postings as CSV"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-                
-                {/* Add Job Posting Button */}
-                <button 
-                  className="all-leads__add-job-btn"
-                  onClick={() => setActiveModal('newJobPosting')}
-                >
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd"/>
-                  </svg>
-                  Add Job Posting
-                </button>
-                
-                <div className="all-leads__job-list">
-                  {filteredJobPostings.length === 0 ? (
-                    <div className="all-leads__sidebar-empty">
-                      <p>No job postings yet</p>
-                    </div>
-                  ) : (
-                    filteredJobPostings.map(job => (
-                      <div
-                        key={job.id}
-                        className="all-leads__job-item"
-                      >
-                        <div className="all-leads__job-header">
-                          <h4 className="all-leads__job-title">{job.job_title || 'Untitled Position'}</h4>
-                        </div>
-                        
-                        <div className="all-leads__job-info-row">
-                          <span className="all-leads__job-label">Company:</span>
-                          <span className="all-leads__job-value">{job.company_name || 'Company Name'}</span>
-                        </div>
-                        
-                        {job.experience_level && (
-                          <div className="all-leads__job-info-row">
-                            <span className="all-leads__job-label">Level:</span>
-                            <span className="all-leads__job-value">{job.experience_level}</span>
-                          </div>
-                        )}
-                        
-                        {job.aligned_sector && job.aligned_sector.length > 0 && (
-                          <div className="all-leads__job-info-row">
-                            <span className="all-leads__job-label">Sectors:</span>
-                            <div className="all-leads__job-sectors">
-                              {(typeof job.aligned_sector === 'string' 
-                                ? JSON.parse(job.aligned_sector) 
-                                : job.aligned_sector
-                              ).slice(0, 2).map((sector, index) => (
-                                <span key={index} className="all-leads__job-sector-tag">
-                                  {sector}
-                                </span>
-                              ))}
-                              {(typeof job.aligned_sector === 'string' 
-                                ? JSON.parse(job.aligned_sector).length 
-                                : job.aligned_sector.length
-                              ) > 2 && (
-                                <span className="all-leads__job-sector-more">
-                                  +{(typeof job.aligned_sector === 'string' 
-                                    ? JSON.parse(job.aligned_sector).length 
-                                    : job.aligned_sector.length
-                                  ) - 2}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {job.created_at && (
-                          <div className="all-leads__job-info-row">
-                            <span className="all-leads__job-label">Posted:</span>
-                            <span className="all-leads__job-value">
-                              {new Date(job.created_at).toLocaleDateString('en-US', { 
-                                month: 'short', 
-                                day: 'numeric', 
-                                year: 'numeric' 
-                              })}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* Job Actions */}
-                        <div className="all-leads__job-actions">
-                          {(job.job_url || job.job_posting_url) && (
-                            <a 
-                              href={job.job_url || job.job_posting_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="all-leads__job-link-btn"
-                            >
-                              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
-                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
-                              </svg>
-                              View Job
-                            </a>
-                          )}
-                          <button 
-                            className="all-leads__job-delete-btn"
-                            onClick={() => handleDeleteJobPosting(job.id, `${job.job_title} - ${job.company_name}`)}
-                          >
-                            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd"/>
-                            </svg>
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                      ))
-                  )}
-                </div>
-              </div>
             </div>
           )}
 
@@ -1012,56 +781,49 @@ const AllLeads = () => {
                         </div>
 
                         <div className="form-section">
-                          <label className="form-label">Lead Temperature *</label>
-                          <div className="button-group button-group--three">
-                            <button
-                              type="button"
-                              className={`button-temp ${newLeadForm.lead_temperature === 'cold' ? 'button-temp--active button-temp--cold' : ''}`}
-                              onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'cold'})}
-                            >
-                              Cold
-                            </button>
-                            <button
-                              type="button"
-                              className={`button-temp ${newLeadForm.lead_temperature === 'warm' ? 'button-temp--active button-temp--warm' : ''}`}
-                              onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'warm'})}
-                            >
-                              Warm
-                            </button>
-                            <button
-                              type="button"
-                              className={`button-temp ${newLeadForm.lead_temperature === 'hot' ? 'button-temp--active button-temp--hot' : ''}`}
-                              onClick={() => setNewLeadForm({...newLeadForm, lead_temperature: 'hot'})}
-                            >
-                              Hot
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="form-section">
-                          <label className="form-label">Source *</label>
-                          <div className="button-group button-group--three">
-                            <button
-                              type="button"
-                              className={`button-source button-source--personal ${newLeadForm.source === 'personal' ? 'button-source--active' : ''}`}
-                              onClick={() => setNewLeadForm({...newLeadForm, source: 'personal'})}
-                            >
-                              Personal Network
-                            </button>
-                            <button
-                              type="button"
-                              className={`button-source button-source--professional ${newLeadForm.source === 'professional' ? 'button-source--active' : ''}`}
-                              onClick={() => setNewLeadForm({...newLeadForm, source: 'professional'})}
-                            >
-                              Professional Network
-                            </button>
-                            <button
-                              type="button"
-                              className={`button-source button-source--online ${newLeadForm.source === 'online' ? 'button-source--active' : ''}`}
-                              onClick={() => setNewLeadForm({...newLeadForm, source: 'online'})}
-                            >
-                              Online/Research
-                            </button>
+                          <label className="form-label">Source</label>
+                          <p className="form-help-text">Press Enter or Tab to add tags (e.g., LinkedIn, Referral, Personal Network)</p>
+                          <div className="tags-input-container">
+                            <div className="tags-display">
+                              {newLeadForm.source.map((tag, index) => (
+                                <span key={index} className="tag-item">
+                                  {tag}
+                                  <button
+                                    type="button"
+                                    className="tag-remove"
+                                    onClick={() => {
+                                      const updatedTags = newLeadForm.source.filter((_, i) => i !== index);
+                                      setNewLeadForm({...newLeadForm, source: updatedTags});
+                                    }}
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              ))}
+                              <input
+                                type="text"
+                                className="tags-input"
+                                placeholder={newLeadForm.source.length === 0 ? "Add source tags..." : ""}
+                                value={sourceInput}
+                                onChange={(e) => setSourceInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if ((e.key === 'Enter' || e.key === 'Tab') && sourceInput.trim()) {
+                                    e.preventDefault();
+                                    if (!newLeadForm.source.includes(sourceInput.trim())) {
+                                      setNewLeadForm({
+                                        ...newLeadForm,
+                                        source: [...newLeadForm.source, sourceInput.trim()]
+                                      });
+                                    }
+                                    setSourceInput('');
+                                  } else if (e.key === 'Backspace' && !sourceInput && newLeadForm.source.length > 0) {
+                                    const updatedTags = [...newLeadForm.source];
+                                    updatedTags.pop();
+                                    setNewLeadForm({...newLeadForm, source: updatedTags});
+                                  }
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -1082,24 +844,48 @@ const AllLeads = () => {
                     {/* Aligned Sectors */}
                     <div className="form-section">
                       <label className="form-label">Aligned Sectors *</label>
-                      <p className="form-help-text">Select all sectors where this lead would be a good fit</p>
-                      <div className="sector-checkboxes">
-                        {sectors.map(sector => (
-                          <label key={sector} className="sector-checkbox-item">
-                            <input
-                              type="checkbox"
-                              checked={newLeadForm.aligned_sector.includes(sector)}
-                              onChange={(e) => {
-                                const updatedSectors = e.target.checked
-                                  ? [...newLeadForm.aligned_sector, sector]
-                                  : newLeadForm.aligned_sector.filter(s => s !== sector);
-                                setNewLeadForm({...newLeadForm, aligned_sector: updatedSectors});
-                              }}
-                              className="sector-checkbox"
-                            />
-                            <span className="sector-checkbox-text">{sector}</span>
-                          </label>
-                        ))}
+                      <p className="form-help-text">Press Enter or Tab to add sectors (e.g., Technology, Finance, Healthcare)</p>
+                      <div className="tags-input-container">
+                        <div className="tags-display">
+                          {newLeadForm.aligned_sector.map((tag, index) => (
+                            <span key={index} className="tag-item">
+                              {tag}
+                              <button
+                                type="button"
+                                className="tag-remove"
+                                onClick={() => {
+                                  const updatedTags = newLeadForm.aligned_sector.filter((_, i) => i !== index);
+                                  setNewLeadForm({...newLeadForm, aligned_sector: updatedTags});
+                                }}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                          <input
+                            type="text"
+                            className="tags-input"
+                            placeholder={newLeadForm.aligned_sector.length === 0 ? "Add sector tags..." : ""}
+                            value={sectorInput}
+                            onChange={(e) => setSectorInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if ((e.key === 'Enter' || e.key === 'Tab') && sectorInput.trim()) {
+                                e.preventDefault();
+                                if (!newLeadForm.aligned_sector.includes(sectorInput.trim())) {
+                                  setNewLeadForm({
+                                    ...newLeadForm,
+                                    aligned_sector: [...newLeadForm.aligned_sector, sectorInput.trim()]
+                                  });
+                                }
+                                setSectorInput('');
+                              } else if (e.key === 'Backspace' && !sectorInput && newLeadForm.aligned_sector.length > 0) {
+                                const updatedTags = [...newLeadForm.aligned_sector];
+                                updatedTags.pop();
+                                setNewLeadForm({...newLeadForm, aligned_sector: updatedTags});
+                              }
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -1142,158 +928,6 @@ const AllLeads = () => {
                       </button>
                       <button type="submit" disabled={loading} className="btn-primary">
                         {loading ? 'Adding...' : 'Add Lead'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {activeModal === 'newJobPosting' && (
-                  <form className="modal-form" onSubmit={handleAddJobPosting}>
-                    <h2 className="modal-title">Add Job Posting</h2>
-
-                    {/* Date Field */}
-                    <div className="form-section">
-                      <label className="form-label">Date *</label>
-                      <p className="form-help-text">Select the date for this job posting entry</p>
-                      <input
-                        type="date"
-                        value={newJobPostingForm.outreach_date}
-                        onChange={(e) => setNewJobPostingForm({...newJobPostingForm, outreach_date: e.target.value})}
-                        className="form-input"
-                        required
-                      />
-                    </div>
-
-                    {/* Job Posting Fields */}
-                    <div className="form-section">
-                      <label className="form-label">Job Title *</label>
-                      <input
-                        type="text"
-                        required
-                        value={newJobPostingForm.job_title}
-                        onChange={(e) => setNewJobPostingForm({...newJobPostingForm, job_title: e.target.value})}
-                        className="form-input"
-                        placeholder="e.g., Full Stack Developer"
-                      />
-                    </div>
-
-                    <div className="form-section">
-                      <label className="form-label">Company Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={newJobPostingForm.company_name}
-                        onChange={(e) => setNewJobPostingForm({...newJobPostingForm, company_name: e.target.value})}
-                        className="form-input"
-                        placeholder="e.g., TechCorp Inc."
-                      />
-                    </div>
-
-                    <div className="form-section">
-                      <label className="form-label">Job Posting URL *</label>
-                      <input
-                        type="url"
-                        required
-                        value={newJobPostingForm.job_posting_url}
-                        onChange={(e) => setNewJobPostingForm({...newJobPostingForm, job_posting_url: e.target.value})}
-                        className="form-input"
-                        placeholder="https://..."
-                      />
-                    </div>
-
-                    <div className="form-section">
-                      <label className="form-label">Experience Level *</label>
-                      <select
-                        required
-                        value={newJobPostingForm.experience_level}
-                        onChange={(e) => setNewJobPostingForm({...newJobPostingForm, experience_level: e.target.value})}
-                        className="form-select"
-                      >
-                        <option value="">Select Level</option>
-                        {experienceLevels.map(level => (
-                          <option key={level} value={level}>{level}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="form-section">
-                      <label className="form-label">Source *</label>
-                      <select
-                        required
-                        value={newJobPostingForm.source}
-                        onChange={(e) => setNewJobPostingForm({...newJobPostingForm, source: e.target.value})}
-                        className="form-select"
-                      >
-                        <option value="">Select Source</option>
-                        {jobPostingSources.map(source => (
-                          <option key={source} value={source.toLowerCase()}>{source}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Aligned Sectors */}
-                    <div className="form-section">
-                      <label className="form-label">Aligned Sectors *</label>
-                      <p className="form-help-text">Select all sectors where this job would be a good fit</p>
-                      <div className="sector-checkboxes">
-                        {sectors.map(sector => (
-                          <label key={sector} className="sector-checkbox-item">
-                            <input
-                              type="checkbox"
-                              checked={newJobPostingForm.aligned_sector.includes(sector)}
-                              onChange={(e) => {
-                                const updatedSectors = e.target.checked
-                                  ? [...newJobPostingForm.aligned_sector, sector]
-                                  : newJobPostingForm.aligned_sector.filter(s => s !== sector);
-                                setNewJobPostingForm({...newJobPostingForm, aligned_sector: updatedSectors});
-                              }}
-                              className="sector-checkbox"
-                            />
-                            <span className="sector-checkbox-text">{sector}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Ownership */}
-                    <div className="form-section">
-                      <label className="form-label">Ownership *</label>
-                      <p className="form-help-text">Please select your name below</p>
-                      <select
-                        required
-                        value={newJobPostingForm.ownership}
-                        onChange={(e) => setNewJobPostingForm({...newJobPostingForm, ownership: e.target.value})}
-                        className="form-select"
-                      >
-                        <option value="">Please select your name below</option>
-                        {staffMembers.map(member => (
-                          <option key={member.id} value={member.name}>{member.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Notes / Comments */}
-                    <div className="form-section">
-                      <label className="form-label">Notes / Comments</label>
-                      <p className="form-help-text">
-                        e.g., "Looks aligned with AI Builders" or "Company is known for hiring apprentices"
-                      </p>
-                      <textarea
-                        value={newJobPostingForm.notes}
-                        onChange={(e) => setNewJobPostingForm({...newJobPostingForm, notes: e.target.value})}
-                        className="form-textarea"
-                        rows="3"
-                        placeholder="Add any relevant notes..."
-                      />
-                    </div>
-
-                    {/* Actions */}
-                    <div className="modal-actions">
-                      <button type="button" onClick={closeModal} className="btn-secondary">
-                        Cancel
-                      </button>
-                      <button type="submit" disabled={loading} className="btn-primary">
-                        {loading ? 'Adding...' : 'Add Job Posting'}
                       </button>
                     </div>
                   </form>
@@ -1371,7 +1005,6 @@ const AllLeads = () => {
                                     ...updateLeadForm,
                                     selectedLead: lead,
                                     stage: lead.stage || 'Initial Outreach',
-                                    lead_temperature: lead.lead_temperature || 'warm',
                                     search: lead.contact_name
                                   });
                                 }}
@@ -1412,34 +1045,6 @@ const AllLeads = () => {
                               <option key={stage} value={stage}>{stage}</option>
                             ))}
                           </select>
-                        </div>
-
-                        {/* Update Lead Temperature */}
-                        <div className="form-section">
-                          <label className="form-label">Update Lead Temperature</label>
-                          <div className="button-group button-group--three">
-                            <button
-                              type="button"
-                              className={`button-temp ${updateLeadForm.lead_temperature === 'cold' ? 'button-temp--active button-temp--cold' : ''}`}
-                              onClick={() => setUpdateLeadForm({...updateLeadForm, lead_temperature: 'cold'})}
-                            >
-                              Cold
-                            </button>
-                            <button
-                              type="button"
-                              className={`button-temp ${updateLeadForm.lead_temperature === 'warm' ? 'button-temp--active button-temp--warm' : ''}`}
-                              onClick={() => setUpdateLeadForm({...updateLeadForm, lead_temperature: 'warm'})}
-                            >
-                              Warm
-                            </button>
-                            <button
-                              type="button"
-                              className={`button-temp ${updateLeadForm.lead_temperature === 'hot' ? 'button-temp--active button-temp--hot' : ''}`}
-                              onClick={() => setUpdateLeadForm({...updateLeadForm, lead_temperature: 'hot'})}
-                            >
-                              Hot
-                            </button>
-                          </div>
                         </div>
 
                         {/* Activity Notes */}
@@ -1495,13 +1100,13 @@ const AllLeads = () => {
               <div className="modal-overlay" onClick={() => {
                 setActiveModal(null);
                 setSelectedLeadDetails(null);
-              }} style={{ zIndex: 9999 }}>
+              }}>
                 <div className="lead-details-modal" onClick={(e) => e.stopPropagation()}>
                 <button className="modal-close" onClick={(e) => {
                   e.stopPropagation();
                   setActiveModal(null);
                   setSelectedLeadDetails(null);
-                }} style={{ zIndex: 10000 }}>
+                }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
@@ -1514,45 +1119,40 @@ const AllLeads = () => {
                       <h2 className="lead-details__title">{selectedLeadDetails.contact_name || 'Lead Details'}</h2>
                       <p className="lead-details__company">{selectedLeadDetails.company_name}</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                      <span className={`all-leads__temp-badge all-leads__temp-badge--${(selectedLeadDetails.lead_temperature || 'cold').toLowerCase()}`}>
-                        {(selectedLeadDetails.lead_temperature || 'cold').toUpperCase()}
-                      </span>
-                      {!isEditMode ? (
-                        <button 
-                          className="lead-details__edit-btn"
+                    {!isEditMode ? (
+                      <button
+                        className="lead-details__edit-btn"
+                        onClick={() => {
+                          setIsEditMode(true);
+                          setEditFormData({
+                            source: selectedLeadDetails.source || selectedLeadDetails.contact_method || '',
+                            contact_email: selectedLeadDetails.contact_email || '',
+                            linkedin_url: selectedLeadDetails.linkedin_url || ''
+                          });
+                        }}
+                      >
+                        ✏️ Edit
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button
+                          className="lead-details__save-btn"
+                          onClick={handleSaveLeadDetails}
+                          disabled={loading}
+                        >
+                          {loading ? 'Saving...' : '💾 Save'}
+                        </button>
+                        <button
+                          className="lead-details__cancel-btn"
                           onClick={() => {
-                            setIsEditMode(true);
-                            setEditFormData({
-                              source: selectedLeadDetails.source || selectedLeadDetails.contact_method || '',
-                              contact_email: selectedLeadDetails.contact_email || '',
-                              linkedin_url: selectedLeadDetails.linkedin_url || ''
-                            });
+                            setIsEditMode(false);
+                            setEditFormData({});
                           }}
                         >
-                          ✏️ Edit
+                          ✖️ Cancel
                         </button>
-                      ) : (
-                        <>
-                          <button 
-                            className="lead-details__save-btn"
-                            onClick={handleSaveLeadDetails}
-                            disabled={loading}
-                          >
-                            {loading ? 'Saving...' : '💾 Save'}
-                          </button>
-                          <button 
-                            className="lead-details__cancel-btn"
-                            onClick={() => {
-                              setIsEditMode(false);
-                              setEditFormData({});
-                            }}
-                          >
-                            ✖️ Cancel
-                          </button>
-                        </>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Current Info */}

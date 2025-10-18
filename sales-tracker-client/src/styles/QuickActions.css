@@ -124,7 +124,7 @@
   background: #ffffff;
   border-radius: 16px;
   width: 100%;
-  max-width: 600px;
+  max-width: 900px;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
@@ -225,6 +225,79 @@
   color: #374151;
   font-weight: 500;
   cursor: pointer;
+}
+
+/* Tags Input */
+.tags-input-container {
+  width: 100%;
+}
+
+.tags-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  min-height: 44px;
+  cursor: text;
+}
+
+.tags-display:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.tag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #1e40af;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.tag-remove:hover {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.tags-input {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  padding: 0.25rem;
+  font-size: 0.9375rem;
+  color: #1f2937;
+  font-family: inherit;
+}
+
+.tags-input::placeholder {
+  color: #9ca3af;
 }
 
 /* Sector Checkboxes */

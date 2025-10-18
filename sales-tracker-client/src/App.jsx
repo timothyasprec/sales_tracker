@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Overview from './pages/Overview';
 import AllLeads from './pages/AllLeads';
+import JobPostings from './pages/JobPostings';
 import Builders from './pages/Builders';
 import ActivityFeed from './pages/ActivityFeed';
 import QuickActions from './pages/QuickActions';
@@ -34,6 +35,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AllLeads />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/job-postings"
+            element={
+              <ProtectedRoute>
+                <JobPostings />
               </ProtectedRoute>
             }
           />

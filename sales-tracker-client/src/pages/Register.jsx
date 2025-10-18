@@ -34,7 +34,7 @@ const Register = () => {
     const result = await register({ name, email, password });
 
     if (result.success) {
-      navigate('/dashboard');
+      navigate('/overview');
     } else {
       setError(result.error);
       setLoading(false);

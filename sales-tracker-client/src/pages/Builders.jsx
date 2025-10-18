@@ -423,28 +423,34 @@ const Builders = () => {
       </header>
 
       <nav className="overview__nav">
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/overview')}
         >
           Overview
         </button>
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/leads')}
         >
           All Leads
         </button>
+        <button
+          className="overview__nav-item"
+          onClick={() => navigate('/job-postings')}
+        >
+          Job Postings
+        </button>
         <button className="overview__nav-item overview__nav-item--active">
           Builders
         </button>
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/activity')}
         >
           Activity Feed
         </button>
-        <button 
+        <button
           className="overview__nav-item"
           onClick={() => navigate('/actions')}
         >

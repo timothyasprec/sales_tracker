@@ -22,7 +22,6 @@ const createJobPosting = async (jobPostingData) => {
     job_url,
     experience_level,
     source,
-    lead_temperature,
     ownership,
     aligned_sector,
     notes,
@@ -36,13 +35,12 @@ const createJobPosting = async (jobPostingData) => {
       job_url,
       experience_level,
       source,
-      lead_temperature,
       ownership,
       aligned_sector,
       notes,
       staff_user_id,
       status
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'active')
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'active')
     RETURNING *
   `;
 
@@ -52,7 +50,6 @@ const createJobPosting = async (jobPostingData) => {
     job_url || null,
     experience_level || null,
     source || null,
-    lead_temperature || 'cold',
     ownership || null,
     aligned_sector ? JSON.stringify(aligned_sector) : null,
     notes || null,
@@ -75,7 +72,6 @@ const updateJobPosting = async (id, updateData) => {
     'job_url',
     'experience_level',
     'source',
-    'lead_temperature',
     'ownership',
     'aligned_sector',
     'notes',
