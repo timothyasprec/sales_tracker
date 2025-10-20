@@ -75,16 +75,25 @@ const updateJobPosting = async (id, updateData) => {
     'ownership',
     'aligned_sector',
     'notes',
-    'status'
+    'status',
+    'is_shared',
+    'shared_date',
+    'salary_range'
   ];
 
+  console.log('Update data received:', updateData);
+
   for (const [key, value] of Object.entries(updateData)) {
+    console.log(`Checking field: ${key}, value: ${value}, allowed: ${allowedFields.includes(key)}, undefined: ${value === undefined}`);
     if (allowedFields.includes(key) && value !== undefined) {
       fields.push(`${key} = $${paramCount}`);
       values.push(key === 'aligned_sector' && typeof value === 'object' ? JSON.stringify(value) : value);
       paramCount++;
     }
   }
+
+  console.log('Fields to update:', fields);
+  console.log('Values:', values);
 
   if (fields.length === 0) {
     throw new Error('No valid fields to update');

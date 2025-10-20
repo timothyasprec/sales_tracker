@@ -274,12 +274,6 @@ const ActivityFeed = () => {
         <button className="overview__nav-item overview__nav-item--active">
           Activity Feed
         </button>
-        <button
-          className="overview__nav-item"
-          onClick={() => navigate('/actions')}
-        >
-          Quick Actions
-        </button>
       </nav>
 
       <main className="overview__main">

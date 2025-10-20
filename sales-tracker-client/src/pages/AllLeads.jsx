@@ -15,7 +15,9 @@ const AllLeads = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
-  
+  const [stageFilter, setStageFilter] = useState('all');
+  const [ownerFilter, setOwnerFilter] = useState('all');
+
   // Modal state
   const [activeModal, setActiveModal] = useState(null);
   const [staffMembers, setStaffMembers] = useState([]);
@@ -24,6 +26,14 @@ const AllLeads = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editFormData, setEditFormData] = useState({});
   const [editingUpdateIndex, setEditingUpdateIndex] = useState(null);
+  const [showStatusUpdate, setShowStatusUpdate] = useState(false);
+  const [statusUpdateForm, setStatusUpdateForm] = useState({
+    stage: '',
+    stage_detail: '',
+    notes: '',
+    next_steps: '',
+    update_date: new Date().toISOString().split('T')[0]
+  });
   
   // Form states
   const [newLeadForm, setNewLeadForm] = useState({
@@ -36,26 +46,47 @@ const AllLeads = () => {
     outreach_date: new Date().toISOString().split('T')[0],
     source: [],
     stage: 'Initial Outreach',
+    stage_detail: '', // For Active Lead, Close Won, Close Loss sub-options
     ownership: user?.name || '',
+    current_owner: user?.name || '',
     notes: '',
     aligned_sector: []
   });
-
-  const [sourceInput, setSourceInput] = useState('');
-  const [sectorInput, setSectorInput] = useState('');
-
 
   const [updateLeadForm, setUpdateLeadForm] = useState({
     search: '',
     selectedLead: null,
     stage: '',
+    stage_detail: '',
     notes: '',
     next_steps: '',
     update_date: new Date().toISOString().split('T')[0]
   });
-  
+
+  const [quickUpdateForm, setQuickUpdateForm] = useState({
+    selectedLead: null,
+    stage: '',
+    stage_detail: '',
+    notes: '',
+    next_steps: '',
+    update_date: new Date().toISOString().split('T')[0]
+  });
+
   const [leadSearchResults, setLeadSearchResults] = useState([]);
   const [showMyLeadsOnly, setShowMyLeadsOnly] = useState(false);
+
+  // Search enhancements
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [searchHistory, setSearchHistory] = useState(() => {
+    const saved = localStorage.getItem('leadSearchHistory');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [dateRange, setDateRange] = useState({
+    from: '',
+    to: ''
+  });
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
   useEffect(() => {
     fetchLeads();
@@ -64,7 +95,33 @@ const AllLeads = () => {
 
   useEffect(() => {
     filterLeads();
-  }, [leads, searchTerm, activeFilter]);
+  }, [leads, searchTerm, activeFilter, stageFilter, ownerFilter, dateRange]);
+
+  // Autocomplete suggestions effect
+  useEffect(() => {
+    if (searchTerm.length > 0) {
+      const suggestions = leads
+        .filter(lead => {
+          const searchLower = searchTerm.toLowerCase();
+          return (
+            lead.company_name?.toLowerCase().includes(searchLower) ||
+            lead.contact_name?.toLowerCase().includes(searchLower) ||
+            lead.contact_title?.toLowerCase().includes(searchLower)
+          );
+        })
+        .slice(0, 5)
+        .map(lead => ({
+          id: lead.id,
+          text: `${lead.contact_name} - ${lead.company_name}`,
+          lead: lead
+        }));
+      setSearchSuggestions(suggestions);
+      setShowAutocomplete(suggestions.length > 0);
+    } else {
+      setSearchSuggestions([]);
+      setShowAutocomplete(false);
+    }
+  }, [searchTerm, leads]);
   
   // Handle lead search for update form
   useEffect(() => {
@@ -173,6 +230,34 @@ const AllLeads = () => {
       });
     }
 
+    // Apply date range filter
+    if (dateRange.from || dateRange.to) {
+      filtered = filtered.filter(lead => {
+        const leadDate = new Date(lead.updated_at || lead.outreach_date);
+        const fromDate = dateRange.from ? new Date(dateRange.from) : null;
+        const toDate = dateRange.to ? new Date(dateRange.to) : null;
+
+        if (fromDate && toDate) {
+          return leadDate >= fromDate && leadDate <= toDate;
+        } else if (fromDate) {
+          return leadDate >= fromDate;
+        } else if (toDate) {
+          return leadDate <= toDate;
+        }
+        return true;
+      });
+    }
+
+    // Apply stage filter
+    if (stageFilter !== 'all') {
+      filtered = filtered.filter(lead => (lead.stage || 'Initial Outreach') === stageFilter);
+    }
+
+    // Apply owner filter
+    if (ownerFilter !== 'all') {
+      filtered = filtered.filter(lead => (lead.current_owner || lead.ownership) === ownerFilter);
+    }
+
     // Apply filter and sorting
     if (activeFilter === 'my-leads') {
       filtered = filtered.filter(lead => lead.staff_user_id === user?.id);
@@ -222,18 +307,103 @@ const AllLeads = () => {
   // Constants for forms
   const stages = [
     'Initial Outreach',
-    'Email Campaign',
-    'Follow-up',
-    'Sales Pitch Meeting',
-    'Follow-up Resources Sent',
-    'Interested',
-    'Not Interested'
+    'Not Interested',
+    'Active Lead',
+    'Close Won',
+    'Close Loss'
   ];
+
+  // Sub-options for specific stages
+  const stageDetails = {
+    'Active Lead': [
+      'Connected to PBC',
+      'Someone responded positively (Setting up a meeting, had multiple meetings)'
+    ],
+    'Close Won': [
+      'Gets Job Offer'
+    ],
+    'Close Loss': [
+      'Nothing Worked'
+    ]
+  };
+
+  // Source options
+  const sourceOptions = [
+    'LinkedIn',
+    'Indeed or Other Job Boards',
+    'Employee Referral',
+    'Personal Network',
+    'Alumni Network',
+    'Professional Network',
+    'Events & Conferences (Conference, Workshops, Webinars)',
+    'Previous Employer',
+    'Recruitment Agency',
+    'Other'
+  ];
+
+  // Aligned Sector options
+  const alignedSectorOptions = [
+    'Technology',
+    'Software Engineer',
+    'Healthcare',
+    'Finance',
+    'Manufacturing',
+    'Retail',
+    'Construction',
+    'Professional Services',
+    'Education',
+    'Other'
+  ];
+
+  // Get color based on stage
+  const getStageColor = (stage) => {
+    const stageColors = {
+      'Initial Outreach': '#6b7280',        // Gray
+      'Not Interested': '#ef4444',          // Red
+      'Active Lead': '#3b82f6',             // Blue - Connected to PBC / Someone responded positively
+      'Close Won': '#10b981',               // Green - Gets Job Offer
+      'Close Loss': '#f59e0b'               // Orange - Nothing Worked
+    };
+    return stageColors[stage] || '#3b82f6'; // Default to blue
+  };
 
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
     setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+  };
+
+  const addToSearchHistory = (term) => {
+    if (!term || term.trim() === '') return;
+
+    const newHistory = [term, ...searchHistory.filter(h => h !== term)].slice(0, 10);
+    setSearchHistory(newHistory);
+    localStorage.setItem('leadSearchHistory', JSON.stringify(newHistory));
+  };
+
+  const clearSearchHistory = () => {
+    setSearchHistory([]);
+    localStorage.removeItem('leadSearchHistory');
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    if (value.trim() === '') {
+      setShowAutocomplete(false);
+    }
+  };
+
+  const handleSearchSubmit = () => {
+    if (searchTerm.trim()) {
+      addToSearchHistory(searchTerm);
+      setShowAutocomplete(false);
+    }
+  };
+
+  const selectSuggestion = (suggestion) => {
+    setSearchTerm(suggestion.text);
+    addToSearchHistory(suggestion.text);
+    setShowAutocomplete(false);
   };
 
   const closeModal = () => {
@@ -242,6 +412,22 @@ const AllLeads = () => {
     setIsEditMode(false);
     setEditFormData({});
     setEditingUpdateIndex(null);
+    setShowStatusUpdate(false);
+    setStatusUpdateForm({
+      stage: '',
+      stage_detail: '',
+      notes: '',
+      next_steps: '',
+      update_date: new Date().toISOString().split('T')[0]
+    });
+    setQuickUpdateForm({
+      selectedLead: null,
+      stage: '',
+      stage_detail: '',
+      notes: '',
+      next_steps: '',
+      update_date: new Date().toISOString().split('T')[0]
+    });
     setNewLeadForm({
       lead_type: 'contact',
       company_name: '',
@@ -252,16 +438,17 @@ const AllLeads = () => {
       outreach_date: new Date().toISOString().split('T')[0],
       source: [],
       stage: 'Initial Outreach',
+      stage_detail: '',
       ownership: user?.name || '',
+      current_owner: user?.name || '',
       notes: '',
       aligned_sector: []
     });
-    setSourceInput('');
-    setSectorInput('');
     setUpdateLeadForm({
       search: '',
       selectedLead: null,
       stage: '',
+      stage_detail: '',
       notes: '',
       next_steps: '',
       update_date: new Date().toISOString().split('T')[0]
@@ -271,11 +458,23 @@ const AllLeads = () => {
 
   const handleSaveLeadDetails = async () => {
     if (!selectedLeadDetails) return;
-    
+
     setLoading(true);
     try {
-      await outreachAPI.updateOutreach(selectedLeadDetails.id, editFormData);
-      
+      // Check if current owner is changing
+      const previousOwner = selectedLeadDetails.current_owner || selectedLeadDetails.ownership;
+      const newOwner = editFormData.current_owner || previousOwner;
+      const ownerChanged = previousOwner !== newOwner;
+
+      // Automatically set current owner to logged-in user if not explicitly set
+      const dataToUpdate = {
+        ...editFormData,
+        current_owner: editFormData.current_owner || user.name
+      };
+
+      await outreachAPI.updateOutreach(selectedLeadDetails.id, dataToUpdate);
+
+      // Create activity for the update
       await activityAPI.createActivity({
         user_name: user.name,
         action_type: 'updated_lead',
@@ -285,12 +484,26 @@ const AllLeads = () => {
           updated_fields: Object.keys(editFormData).join(', ')
         }
       });
-      
+
+      // If owner changed, create a separate activity for ownership change
+      if (ownerChanged) {
+        await activityAPI.createActivity({
+          user_name: user.name,
+          action_type: 'ownership_changed',
+          entity_type: 'lead',
+          entity_name: `${selectedLeadDetails.contact_name} - ${selectedLeadDetails.company_name}`,
+          details: {
+            previous_owner: previousOwner,
+            new_owner: dataToUpdate.current_owner
+          }
+        });
+      }
+
       showMessage('success', 'Lead details updated successfully!');
       setIsEditMode(false);
       setEditFormData({});
       fetchLeads();
-      
+
       // Refresh the selected lead details
       const updatedLeads = await outreachAPI.getAllOutreach();
       const updatedLead = updatedLeads.find(l => l.id === selectedLeadDetails.id);
@@ -305,33 +518,50 @@ const AllLeads = () => {
     }
   };
 
-  const handleCompleteNextStep = async () => {
+  const handleCompleteNextStep = async (stepId, stepTask) => {
     if (!selectedLeadDetails) return;
-    
+
     setLoading(true);
     try {
+      // Parse current next_steps array
+      let nextStepsArray = [];
+      try {
+        if (selectedLeadDetails.next_steps) {
+          nextStepsArray = typeof selectedLeadDetails.next_steps === 'string'
+            ? JSON.parse(selectedLeadDetails.next_steps)
+            : selectedLeadDetails.next_steps;
+        }
+      } catch (e) {
+        nextStepsArray = [];
+      }
+
+      // Mark the specific step as completed
+      const updatedNextSteps = nextStepsArray.map(step =>
+        step.id === stepId ? { ...step, completed: true, completed_at: new Date().toISOString() } : step
+      );
+
       const updateData = {
-        next_steps: null, // Clear next steps when completed
-        notes: selectedLeadDetails.notes 
-          ? `${selectedLeadDetails.notes}\n\n[${new Date().toLocaleDateString()}] ✅ Completed: ${selectedLeadDetails.next_steps}`
-          : `✅ Completed: ${selectedLeadDetails.next_steps}`
+        next_steps: updatedNextSteps,
+        notes: selectedLeadDetails.notes
+          ? `${selectedLeadDetails.notes}\n\n[${new Date().toLocaleDateString()}] ✅ Completed: ${stepTask}`
+          : `[${new Date().toLocaleDateString()}] ✅ Completed: ${stepTask}`
       };
-      
+
       await outreachAPI.updateOutreach(selectedLeadDetails.id, updateData);
-      
+
       await activityAPI.createActivity({
         user_name: user.name,
         action_type: 'completed_next_step',
         entity_type: 'lead',
         entity_name: `${selectedLeadDetails.contact_name} - ${selectedLeadDetails.company_name}`,
         details: {
-          completed_task: selectedLeadDetails.next_steps
+          completed_task: stepTask
         }
       });
-      
+
       showMessage('success', 'Next step marked as completed!');
       fetchLeads();
-      
+
       // Refresh the selected lead details
       const updatedLeads = await outreachAPI.getAllOutreach();
       const updatedLead = updatedLeads.find(l => l.id === selectedLeadDetails.id);
@@ -341,6 +571,97 @@ const AllLeads = () => {
     } catch (error) {
       showMessage('error', 'Failed to complete next step.');
       console.error('Error completing next step:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (e) => {
+    e.preventDefault();
+    if (!selectedLeadDetails) return;
+
+    setLoading(true);
+    try {
+      const updateDate = statusUpdateForm.update_date
+        ? new Date(statusUpdateForm.update_date).toLocaleDateString()
+        : new Date().toLocaleDateString();
+
+      // Create note with stage change information
+      const oldStage = selectedLeadDetails.stage || 'Initial Outreach';
+      const newStage = statusUpdateForm.stage;
+      const stageChanged = oldStage !== newStage;
+
+      let noteContent = '';
+      if (stageChanged) {
+        noteContent = `📊 Stage: ${oldStage} → ${newStage}\n${statusUpdateForm.notes}`;
+      } else {
+        noteContent = statusUpdateForm.notes;
+      }
+
+      // Handle next_steps: append to array if provided
+      let nextStepsArray = [];
+      try {
+        if (selectedLeadDetails.next_steps) {
+          nextStepsArray = typeof selectedLeadDetails.next_steps === 'string'
+            ? JSON.parse(selectedLeadDetails.next_steps)
+            : selectedLeadDetails.next_steps;
+        }
+      } catch (e) {
+        nextStepsArray = [];
+      }
+
+      // If new next step is provided, add it to the array
+      if (statusUpdateForm.next_steps && statusUpdateForm.next_steps.trim()) {
+        nextStepsArray.push({
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          task: statusUpdateForm.next_steps.trim(),
+          created_at: new Date().toISOString(),
+          completed: false
+        });
+      }
+
+      const updateData = {
+        stage: statusUpdateForm.stage,
+        next_steps: nextStepsArray,
+        notes: selectedLeadDetails.notes
+          ? `${selectedLeadDetails.notes}\n\n[${updateDate}] ${noteContent}`
+          : `[${updateDate}] ${noteContent}`
+      };
+
+      await outreachAPI.updateOutreach(selectedLeadDetails.id, updateData);
+
+      await activityAPI.createActivity({
+        user_name: user.name,
+        action_type: 'updated_lead',
+        entity_type: 'lead',
+        entity_name: `${selectedLeadDetails.contact_name} - ${selectedLeadDetails.company_name}`,
+        details: {
+          old_stage: selectedLeadDetails.stage,
+          new_stage: statusUpdateForm.stage,
+          company: selectedLeadDetails.company_name
+        }
+      });
+
+      showMessage('success', 'Lead status updated successfully!');
+      setShowStatusUpdate(false);
+      setStatusUpdateForm({
+        stage: '',
+        stage_detail: '',
+        notes: '',
+        next_steps: '',
+        update_date: new Date().toISOString().split('T')[0]
+      });
+      fetchLeads();
+
+      // Refresh the selected lead details
+      const updatedLeads = await outreachAPI.getAllOutreach();
+      const updatedLead = updatedLeads.find(l => l.id === selectedLeadDetails.id);
+      if (updatedLead) {
+        setSelectedLeadDetails(updatedLead);
+      }
+    } catch (error) {
+      showMessage('error', 'Failed to update lead status.');
+      console.error('Error updating lead:', error);
     } finally {
       setLoading(false);
     }
@@ -413,13 +734,35 @@ const AllLeads = () => {
     setLoading(true);
     try {
       // Use the selected update date instead of today's date
-      const updateDate = updateLeadForm.update_date 
+      const updateDate = updateLeadForm.update_date
         ? new Date(updateLeadForm.update_date).toLocaleDateString()
         : new Date().toLocaleDateString();
-      
+
+      // Handle next_steps: append to array if provided
+      let nextStepsArray = [];
+      try {
+        if (updateLeadForm.selectedLead.next_steps) {
+          nextStepsArray = typeof updateLeadForm.selectedLead.next_steps === 'string'
+            ? JSON.parse(updateLeadForm.selectedLead.next_steps)
+            : updateLeadForm.selectedLead.next_steps;
+        }
+      } catch (e) {
+        nextStepsArray = [];
+      }
+
+      // If new next step is provided, add it to the array
+      if (updateLeadForm.next_steps && updateLeadForm.next_steps.trim()) {
+        nextStepsArray.push({
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          task: updateLeadForm.next_steps.trim(),
+          created_at: new Date().toISOString(),
+          completed: false
+        });
+      }
+
       const updateData = {
         stage: updateLeadForm.stage,
-        next_steps: updateLeadForm.next_steps,
+        next_steps: nextStepsArray,
         notes: updateLeadForm.selectedLead.notes
           ? `${updateLeadForm.selectedLead.notes}\n\n[${updateDate}] ${updateLeadForm.notes}`
           : `[${updateDate}] ${updateLeadForm.notes}`
@@ -500,12 +843,6 @@ const AllLeads = () => {
         >
           Activity Feed
         </button>
-        <button
-          className="overview__nav-item"
-          onClick={() => navigate('/actions')}
-        >
-          Quick Actions
-        </button>
       </nav>
 
       <main className="overview__main">
@@ -522,15 +859,6 @@ const AllLeads = () => {
                 <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
               Add New Lead
-            </button>
-            <button
-              className="action-button action-button--gray"
-              onClick={() => setActiveModal('updateLead')}
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-              </svg>
-              Update Lead Status
             </button>
             <button
               className="action-button action-button--green"
@@ -551,27 +879,280 @@ const AllLeads = () => {
             </div>
           )}
 
-          {/* Search Bar */}
-          <div className="all-leads__search-container">
-            <div className="all-leads__search-box">
+          {/* Search Bar with Enhanced Features */}
+          <div className="all-leads__search-container" style={{ position: 'relative' }}>
+            <div className="all-leads__search-box" style={{ position: 'relative' }}>
               <svg className="all-leads__search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <input
                 type="text"
                 className="all-leads__search-input"
-                placeholder="Search by name, company, sector, source tags, or date..."
+                placeholder="Search by name, company, sector, source tags..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearchSubmit();
+                  }
+                }}
+                onFocus={() => {
+                  if (searchTerm.length > 0 && searchSuggestions.length > 0) {
+                    setShowAutocomplete(true);
+                  }
+                }}
               />
+              {searchTerm && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setShowAutocomplete(false);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: '#6b7280'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+                  </svg>
+                </button>
+              )}
+
+              {/* Autocomplete Dropdown */}
+              {showAutocomplete && (
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  zIndex: 1000
+                }}>
+                  {searchSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.id}
+                      onClick={() => selectSuggestion(suggestion)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        textAlign: 'left',
+                        border: 'none',
+                        backgroundColor: '#ffffff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderBottom: '1px solid #f3f4f6'
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
+                    >
+                      <span style={{ fontSize: '14px', color: '#374151' }}>{suggestion.text}</span>
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>{suggestion.lead.stage}</span>
+                    </button>
+                  ))}
+
+                  {/* Search History Section */}
+                  {searchTerm.length === 0 && searchHistory.length > 0 && (
+                    <>
+                      <div style={{
+                        padding: '8px 16px',
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        fontWeight: '600',
+                        borderTop: '1px solid #e5e7eb',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <span>RECENT SEARCHES</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearSearchHistory();
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            padding: '2px 4px'
+                          }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      {searchHistory.slice(0, 5).map((term, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setSearchTerm(term);
+                            setShowAutocomplete(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '10px 16px',
+                            textAlign: 'left',
+                            border: 'none',
+                            backgroundColor: '#ffffff',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: '#6b7280',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
+                          </svg>
+                          {term}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-            <button className="all-leads__filter-button">
+
+            <button
+              className="all-leads__filter-button"
+              onClick={() => setShowDateFilter(!showDateFilter)}
+              style={{
+                backgroundColor: showDateFilter || dateRange.from || dateRange.to ? '#3b82f6' : '#ffffff',
+                color: showDateFilter || dateRange.from || dateRange.to ? '#ffffff' : '#374151'
+              }}
+            >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M2.5 5.83h15M5.83 10h8.34M8.33 14.17h3.34" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
-              Filters
+              Date Filter
             </button>
           </div>
+
+          {/* Date Range Filter Panel */}
+          {showDateFilter && (
+            <div style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              padding: '16px',
+              marginTop: '12px',
+              marginBottom: '12px'
+            }}>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                    From Date
+                  </label>
+                  <input
+                    type="date"
+                    value={dateRange.from}
+                    onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                    To Date
+                  </label>
+                  <input
+                    type="date"
+                    value={dateRange.to}
+                    onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setDateRange({ from: '', to: '' });
+                    setShowDateFilter(false);
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Search Results Count */}
+          {(searchTerm || dateRange.from || dateRange.to || stageFilter !== 'all') && (
+            <div style={{
+              padding: '8px 16px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '6px',
+              fontSize: '14px',
+              color: '#6b7280',
+              marginBottom: '12px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>
+                Showing <strong style={{ color: '#374151' }}>{filteredLeads.filter(lead => lead.lead_type === 'contact' || !lead.lead_type).length}</strong> of <strong style={{ color: '#374151' }}>{leads.filter(lead => lead.lead_type === 'contact' || !lead.lead_type).length}</strong> leads
+              </span>
+              {(searchTerm || dateRange.from || dateRange.to) && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setDateRange({ from: '', to: '' });
+                    setStageFilter('all');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#3b82f6',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Filter Tabs */}
           <div className="all-leads__tabs">
@@ -599,6 +1180,51 @@ const AllLeads = () => {
             >
               My Leads
             </button>
+            <select
+              className="all-leads__stage-filter"
+              value={stageFilter}
+              onChange={(e) => setStageFilter(e.target.value)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                backgroundColor: '#ffffff',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                cursor: 'pointer',
+                outline: 'none',
+                marginLeft: '12px'
+              }}
+            >
+              <option value="all">All Stages</option>
+              {stages.map(stage => (
+                <option key={stage} value={stage}>{stage}</option>
+              ))}
+            </select>
+
+            <select
+              className="all-leads__owner-filter"
+              value={ownerFilter}
+              onChange={(e) => setOwnerFilter(e.target.value)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                backgroundColor: '#ffffff',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                cursor: 'pointer',
+                outline: 'none',
+                marginLeft: '12px'
+              }}
+            >
+              <option value="all">All Owners</option>
+              {staffMembers.map(member => (
+                <option key={member.id} value={member.name}>{member.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* Contact Leads List */}
@@ -620,12 +1246,72 @@ const AllLeads = () => {
                         <h3 className="all-leads__card-name">
                           {lead.contact_name || 'Unknown Contact'}
                         </h3>
-                        <span className="all-leads__source-badge">
-                          {lead.contact_method || 'Professional Network'}
-                        </span>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <span
+                            className="all-leads__stage-badge"
+                            style={{
+                              backgroundColor: getStageColor(lead.stage || 'Initial Outreach'),
+                              color: '#ffffff',
+                              padding: '4px 12px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: '600',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}
+                          >
+                            {lead.stage || 'Initial Outreach'}
+                          </span>
+                          <span className="all-leads__source-badge">
+                            {lead.contact_method || 'Professional Network'}
+                          </span>
+                        </div>
                       </div>
                       <div className="all-leads__card-actions">
-                        <button 
+                        {(() => {
+                          // Parse next_steps for pending badge
+                          let nextStepsArray = [];
+                          try {
+                            if (lead.next_steps) {
+                              nextStepsArray = typeof lead.next_steps === 'string'
+                                ? JSON.parse(lead.next_steps)
+                                : lead.next_steps;
+                            }
+                          } catch (e) {
+                            nextStepsArray = [];
+                          }
+                          const pendingSteps = nextStepsArray.filter(step => !step.completed);
+
+                          // Get color based on number of pending tasks
+                          const getPendingTaskColor = (count) => {
+                            if (count === 1) return '#10b981'; // Green
+                            if (count === 2) return '#f59e0b'; // Orange
+                            return '#ef4444'; // Red - 3+
+                          };
+
+                          if (pendingSteps.length > 0) {
+                            return (
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '6px 12px',
+                                backgroundColor: getPendingTaskColor(pendingSteps.length),
+                                color: '#ffffff',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px',
+                                whiteSpace: 'nowrap',
+                                marginRight: '8px'
+                              }}>
+                                PENDING TASK: {pendingSteps.length}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                        <button
                           className="all-leads__view-details"
                           onClick={() => {
                             console.log('View Details clicked for:', lead);
@@ -640,7 +1326,41 @@ const AllLeads = () => {
                           </svg>
                           View Details
                         </button>
-                        <button 
+                        <button
+                          className="all-leads__quick-update"
+                          onClick={() => {
+                            setQuickUpdateForm({
+                              selectedLead: lead,
+                              stage: lead.stage || 'Initial Outreach',
+                              notes: '',
+                              next_steps: '',
+                              update_date: new Date().toISOString().split('T')[0]
+                            });
+                            setActiveModal('quickUpdate');
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '8px 16px',
+                            backgroundColor: '#f59e0b',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#d97706'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = '#f59e0b'}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                          </svg>
+                          Quick Update
+                        </button>
+                        <button
                           className="all-leads__delete-btn"
                           onClick={() => handleDeleteLead(lead.id, `${lead.contact_name} - ${lead.company_name}`)}
                         >
@@ -681,13 +1401,65 @@ const AllLeads = () => {
                           return null;
                         }
                       })()}
+                      <span className="all-leads__owner">
+                        Current Owner: <strong>{lead.current_owner || lead.ownership || 'Unassigned'}</strong>
+                      </span>
                     </div>
-                    {lead.next_steps && (
-                      <div className="all-leads__next-steps">
-                        <span className="all-leads__next-steps-label">📌 Next Steps:</span>
-                        <span className="all-leads__next-steps-text">{lead.ownership || 'Team'} will {lead.next_steps}</span>
-                      </div>
-                    )}
+
+                    {/* Latest Activity Notes with Pending Task Counter */}
+                    {(() => {
+                      // Extract the latest activity note from the notes field
+                      const notes = lead.notes || '';
+                      const datePattern = /\[(\d{1,2}\/\d{1,2}\/\d{4})\]/g;
+                      const parts = notes.split(datePattern);
+
+                      let latestNote = null;
+                      // Parse into update objects and get the most recent
+                      for (let i = parts.length - 2; i >= 1; i -= 2) {
+                        if (parts[i] && parts[i + 1] && parts[i + 1].trim()) {
+                          latestNote = parts[i + 1].trim();
+                          break;
+                        }
+                      }
+
+                      // Parse next_steps array for pending tasks
+                      let nextStepsArray = [];
+                      try {
+                        if (lead.next_steps) {
+                          nextStepsArray = typeof lead.next_steps === 'string'
+                            ? JSON.parse(lead.next_steps)
+                            : lead.next_steps;
+                        }
+                      } catch (e) {
+                        nextStepsArray = [];
+                      }
+                      const pendingSteps = nextStepsArray.filter(step => !step.completed);
+
+                      // Get color based on number of pending tasks
+                      const getPendingTaskColor = (count) => {
+                        if (count === 0) return '#6b7280'; // Gray - no tasks
+                        if (count === 1) return '#10b981'; // Green - manageable
+                        if (count === 2) return '#f59e0b'; // Orange - getting busy
+                        return '#ef4444'; // Red - many tasks
+                      };
+
+                      // If we have no latest note, don't show anything
+                      if (!latestNote) return null;
+
+                      return (
+                        <div className="all-leads__next-steps">
+                          <span className="all-leads__next-steps-label">Latest Activity:</span>
+                          <span className="all-leads__next-steps-text" style={{
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {latestNote}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
@@ -781,50 +1553,21 @@ const AllLeads = () => {
                         </div>
 
                         <div className="form-section">
-                          <label className="form-label">Source</label>
-                          <p className="form-help-text">Press Enter or Tab to add tags (e.g., LinkedIn, Referral, Personal Network)</p>
-                          <div className="tags-input-container">
-                            <div className="tags-display">
-                              {newLeadForm.source.map((tag, index) => (
-                                <span key={index} className="tag-item">
-                                  {tag}
-                                  <button
-                                    type="button"
-                                    className="tag-remove"
-                                    onClick={() => {
-                                      const updatedTags = newLeadForm.source.filter((_, i) => i !== index);
-                                      setNewLeadForm({...newLeadForm, source: updatedTags});
-                                    }}
-                                  >
-                                    ×
-                                  </button>
-                                </span>
-                              ))}
-                              <input
-                                type="text"
-                                className="tags-input"
-                                placeholder={newLeadForm.source.length === 0 ? "Add source tags..." : ""}
-                                value={sourceInput}
-                                onChange={(e) => setSourceInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if ((e.key === 'Enter' || e.key === 'Tab') && sourceInput.trim()) {
-                                    e.preventDefault();
-                                    if (!newLeadForm.source.includes(sourceInput.trim())) {
-                                      setNewLeadForm({
-                                        ...newLeadForm,
-                                        source: [...newLeadForm.source, sourceInput.trim()]
-                                      });
-                                    }
-                                    setSourceInput('');
-                                  } else if (e.key === 'Backspace' && !sourceInput && newLeadForm.source.length > 0) {
-                                    const updatedTags = [...newLeadForm.source];
-                                    updatedTags.pop();
-                                    setNewLeadForm({...newLeadForm, source: updatedTags});
-                                  }
-                                }}
-                              />
-                            </div>
-                          </div>
+                          <label className="form-label">Source *</label>
+                          <p className="form-help-text">Select where this lead came from</p>
+                          <select
+                            required
+                            value={Array.isArray(newLeadForm.source) ? (newLeadForm.source[0] || '') : newLeadForm.source}
+                            onChange={(e) => {
+                              setNewLeadForm({...newLeadForm, source: [e.target.value]});
+                            }}
+                            className="form-select"
+                          >
+                            <option value="">Select a source...</option>
+                            {sourceOptions.map(source => (
+                              <option key={source} value={source}>{source}</option>
+                            ))}
+                          </select>
                         </div>
 
                         <div className="form-section">
@@ -832,7 +1575,7 @@ const AllLeads = () => {
                           <p className="form-help-text">Select the starting point for this lead based on your relationship</p>
                           <select
                             value={newLeadForm.stage}
-                            onChange={(e) => setNewLeadForm({...newLeadForm, stage: e.target.value})}
+                            onChange={(e) => setNewLeadForm({...newLeadForm, stage: e.target.value, stage_detail: ''})}
                             className="form-select"
                           >
                             {stages.map(stage => (
@@ -841,65 +1584,74 @@ const AllLeads = () => {
                           </select>
                         </div>
 
+                        {/* Stage Detail Dropdown - Conditional */}
+                        {stageDetails[newLeadForm.stage] && (
+                          <div className="form-section">
+                            <label className="form-label">
+                              {newLeadForm.stage === 'Active Lead' ? 'Lead Type *' :
+                               newLeadForm.stage === 'Close Won' ? 'Win Reason *' :
+                               'Loss Reason *'}
+                            </label>
+                            <select
+                              required
+                              value={newLeadForm.stage_detail}
+                              onChange={(e) => setNewLeadForm({...newLeadForm, stage_detail: e.target.value})}
+                              className="form-select"
+                            >
+                              <option value="">Select...</option>
+                              {stageDetails[newLeadForm.stage].map(detail => (
+                                <option key={detail} value={detail}>{detail}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
                     {/* Aligned Sectors */}
                     <div className="form-section">
                       <label className="form-label">Aligned Sectors *</label>
-                      <p className="form-help-text">Press Enter or Tab to add sectors (e.g., Technology, Finance, Healthcare)</p>
-                      <div className="tags-input-container">
-                        <div className="tags-display">
-                          {newLeadForm.aligned_sector.map((tag, index) => (
-                            <span key={index} className="tag-item">
-                              {tag}
-                              <button
-                                type="button"
-                                className="tag-remove"
-                                onClick={() => {
-                                  const updatedTags = newLeadForm.aligned_sector.filter((_, i) => i !== index);
-                                  setNewLeadForm({...newLeadForm, aligned_sector: updatedTags});
-                                }}
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ))}
-                          <input
-                            type="text"
-                            className="tags-input"
-                            placeholder={newLeadForm.aligned_sector.length === 0 ? "Add sector tags..." : ""}
-                            value={sectorInput}
-                            onChange={(e) => setSectorInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if ((e.key === 'Enter' || e.key === 'Tab') && sectorInput.trim()) {
-                                e.preventDefault();
-                                if (!newLeadForm.aligned_sector.includes(sectorInput.trim())) {
-                                  setNewLeadForm({
-                                    ...newLeadForm,
-                                    aligned_sector: [...newLeadForm.aligned_sector, sectorInput.trim()]
-                                  });
-                                }
-                                setSectorInput('');
-                              } else if (e.key === 'Backspace' && !sectorInput && newLeadForm.aligned_sector.length > 0) {
-                                const updatedTags = [...newLeadForm.aligned_sector];
-                                updatedTags.pop();
-                                setNewLeadForm({...newLeadForm, aligned_sector: updatedTags});
-                              }
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Ownership - For Both Types */}
-                    <div className="form-section">
-                      <label className="form-label">Ownership *</label>
-                      <p className="form-help-text">Please select your name below</p>
+                      <p className="form-help-text">Select a sector</p>
                       <select
                         required
-                        value={newLeadForm.ownership}
-                        onChange={(e) => setNewLeadForm({...newLeadForm, ownership: e.target.value})}
+                        value={Array.isArray(newLeadForm.aligned_sector) ? (newLeadForm.aligned_sector[0] || '') : newLeadForm.aligned_sector}
+                        onChange={(e) => {
+                          setNewLeadForm({...newLeadForm, aligned_sector: [e.target.value]});
+                        }}
                         className="form-select"
                       >
-                        <option value="">Please select your name below</option>
+                        <option value="">Select a sector...</option>
+                        {alignedSectorOptions.map(sector => (
+                          <option key={sector} value={sector}>{sector}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Creator - For Both Types (Read-only, auto-set to logged-in user) */}
+                    <div className="form-section">
+                      <label className="form-label">Creator</label>
+                      <p className="form-help-text">Automatically set to you (the logged-in user)</p>
+                      <input
+                        type="text"
+                        value={newLeadForm.ownership}
+                        readOnly
+                        className="form-input"
+                        style={{
+                          backgroundColor: '#f3f4f6',
+                          cursor: 'not-allowed'
+                        }}
+                      />
+                    </div>
+
+                    {/* Current Owner - For Both Types (Editable dropdown) */}
+                    <div className="form-section">
+                      <label className="form-label">Current Owner *</label>
+                      <p className="form-help-text">Who is currently responsible for this lead</p>
+                      <select
+                        required
+                        value={newLeadForm.current_owner}
+                        onChange={(e) => setNewLeadForm({...newLeadForm, current_owner: e.target.value})}
+                        className="form-select"
+                      >
+                        <option value="">Please select who is responsible</option>
                         {staffMembers.map(member => (
                           <option key={member.id} value={member.name}>{member.name}</option>
                         ))}
@@ -928,6 +1680,171 @@ const AllLeads = () => {
                       </button>
                       <button type="submit" disabled={loading} className="btn-primary">
                         {loading ? 'Adding...' : 'Add Lead'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {activeModal === 'quickUpdate' && quickUpdateForm.selectedLead && (
+                  <form className="modal-form" onSubmit={async (e) => {
+                    e.preventDefault();
+                    setLoading(true);
+                    try {
+                      const updateDate = quickUpdateForm.update_date
+                        ? new Date(quickUpdateForm.update_date).toLocaleDateString()
+                        : new Date().toLocaleDateString();
+
+                      // Create note with stage change information
+                      const oldStage = quickUpdateForm.selectedLead.stage || 'Initial Outreach';
+                      const newStage = quickUpdateForm.stage;
+                      const stageChanged = oldStage !== newStage;
+
+                      let noteContent = '';
+                      if (stageChanged) {
+                        noteContent = `📊 Stage: ${oldStage} → ${newStage}\n${quickUpdateForm.notes}`;
+                      } else {
+                        noteContent = quickUpdateForm.notes;
+                      }
+
+                      // Handle next_steps: append to array if provided
+                      let nextStepsArray = [];
+                      try {
+                        if (quickUpdateForm.selectedLead.next_steps) {
+                          nextStepsArray = typeof quickUpdateForm.selectedLead.next_steps === 'string'
+                            ? JSON.parse(quickUpdateForm.selectedLead.next_steps)
+                            : quickUpdateForm.selectedLead.next_steps;
+                        }
+                      } catch (e) {
+                        nextStepsArray = [];
+                      }
+
+                      // If new next step is provided, add it to the array
+                      if (quickUpdateForm.next_steps && quickUpdateForm.next_steps.trim()) {
+                        nextStepsArray.push({
+                          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                          task: quickUpdateForm.next_steps.trim(),
+                          created_at: new Date().toISOString(),
+                          completed: false
+                        });
+                      }
+
+                      const updateData = {
+                        stage: quickUpdateForm.stage,
+                        next_steps: nextStepsArray,
+                        notes: quickUpdateForm.selectedLead.notes
+                          ? `${quickUpdateForm.selectedLead.notes}\n\n[${updateDate}] ${noteContent}`
+                          : `[${updateDate}] ${noteContent}`
+                      };
+
+                      await outreachAPI.updateOutreach(quickUpdateForm.selectedLead.id, updateData);
+
+                      await activityAPI.createActivity({
+                        user_name: user.name,
+                        action_type: 'updated_lead',
+                        entity_type: 'lead',
+                        entity_name: `${quickUpdateForm.selectedLead.contact_name} - ${quickUpdateForm.selectedLead.company_name}`,
+                        details: {
+                          old_stage: quickUpdateForm.selectedLead.stage,
+                          new_stage: quickUpdateForm.stage,
+                          company: quickUpdateForm.selectedLead.company_name
+                        }
+                      });
+
+                      showMessage('success', 'Lead updated successfully!');
+                      closeModal();
+                      fetchLeads();
+                    } catch (error) {
+                      showMessage('error', 'Failed to update lead. Please try again.');
+                      console.error('Error updating lead:', error);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}>
+                    <h2 className="modal-title">Quick Update: {quickUpdateForm.selectedLead.contact_name}</h2>
+                    <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>
+                      {quickUpdateForm.selectedLead.company_name}
+                    </p>
+
+                    {/* Date Field */}
+                    <div className="form-section">
+                      <label className="form-label">Update Date</label>
+                      <input
+                        type="date"
+                        value={quickUpdateForm.update_date}
+                        onChange={(e) => setQuickUpdateForm({...quickUpdateForm, update_date: e.target.value})}
+                        className="form-input"
+                      />
+                    </div>
+
+                    {/* Stage Dropdown */}
+                    <div className="form-section">
+                      <label className="form-label">Stage *</label>
+                      <select
+                        required
+                        value={quickUpdateForm.stage}
+                        onChange={(e) => setQuickUpdateForm({...quickUpdateForm, stage: e.target.value, stage_detail: ''})}
+                        className="form-select"
+                      >
+                        {stages.map(stage => (
+                          <option key={stage} value={stage}>{stage}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Stage Detail Dropdown - Conditional */}
+                    {stageDetails[quickUpdateForm.stage] && (
+                      <div className="form-section">
+                        <label className="form-label">
+                          {quickUpdateForm.stage === 'Active Lead' ? 'Lead Type *' :
+                           quickUpdateForm.stage === 'Close Won' ? 'Win Reason *' :
+                           'Loss Reason *'}
+                        </label>
+                        <select
+                          required
+                          value={quickUpdateForm.stage_detail}
+                          onChange={(e) => setQuickUpdateForm({...quickUpdateForm, stage_detail: e.target.value})}
+                          className="form-select"
+                        >
+                          <option value="">Select...</option>
+                          {stageDetails[quickUpdateForm.stage].map(detail => (
+                            <option key={detail} value={detail}>{detail}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Activity Notes */}
+                    <div className="form-section">
+                      <label className="form-label">Activity Notes *</label>
+                      <textarea
+                        required
+                        value={quickUpdateForm.notes}
+                        onChange={(e) => setQuickUpdateForm({...quickUpdateForm, notes: e.target.value})}
+                        className="form-textarea"
+                        rows="4"
+                        placeholder="What happened? Record details about the conversation, meeting, or outreach..."
+                      />
+                    </div>
+
+                    {/* Next Steps */}
+                    <div className="form-section">
+                      <label className="form-label">Next Steps</label>
+                      <input
+                        type="text"
+                        value={quickUpdateForm.next_steps}
+                        onChange={(e) => setQuickUpdateForm({...quickUpdateForm, next_steps: e.target.value})}
+                        className="form-input"
+                        placeholder="e.g., Follow up next week, Send resources, Schedule demo"
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="modal-actions">
+                      <button type="button" onClick={closeModal} className="btn-secondary">
+                        Cancel
+                      </button>
+                      <button type="submit" disabled={loading} className="btn-primary">
+                        {loading ? 'Updating...' : 'Update Lead'}
                       </button>
                     </div>
                   </form>
@@ -1157,13 +2074,33 @@ const AllLeads = () => {
 
                   {/* Current Info */}
                   <div className="lead-details__current-info">
-                    <div className="lead-details__info-item">
+                    <div
+                      className="lead-details__info-item lead-details__info-item--stage"
+                      style={{ background: `linear-gradient(135deg, ${getStageColor(selectedLeadDetails.stage || 'Initial Outreach')} 0%, ${getStageColor(selectedLeadDetails.stage || 'Initial Outreach')}dd 100%)` }}
+                    >
                       <span className="lead-details__label">Current Stage:</span>
                       <span className="lead-details__value">{selectedLeadDetails.stage || 'Initial Outreach'}</span>
                     </div>
                     <div className="lead-details__info-item">
-                      <span className="lead-details__label">Owner:</span>
+                      <span className="lead-details__label">Creator:</span>
                       <span className="lead-details__value">{selectedLeadDetails.ownership || 'Unassigned'}</span>
+                    </div>
+                    <div className="lead-details__info-item">
+                      <span className="lead-details__label">Current Owner:</span>
+                      {isEditMode ? (
+                        <select
+                          className="lead-details__input"
+                          value={editFormData.current_owner || selectedLeadDetails.current_owner || ''}
+                          onChange={(e) => setEditFormData({...editFormData, current_owner: e.target.value})}
+                        >
+                          <option value="">Select owner...</option>
+                          {staffMembers.map(member => (
+                            <option key={member.id} value={member.name}>{member.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="lead-details__value">{selectedLeadDetails.current_owner || selectedLeadDetails.ownership || 'Unassigned'}</span>
+                      )}
                     </div>
                     <div className="lead-details__info-item">
                       <span className="lead-details__label">Source:</span>
@@ -1213,37 +2150,226 @@ const AllLeads = () => {
                     </div>
                   </div>
 
-                  {/* Next Steps */}
-                  {selectedLeadDetails.next_steps && (
-                    <div className="lead-details__next-steps">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <h3 className="lead-details__section-title" style={{ margin: 0 }}>📌 Next Steps</h3>
-                        <button 
-                          className="lead-details__complete-btn"
-                          onClick={handleCompleteNextStep}
-                          disabled={loading}
-                        >
-                          ✓ Mark as Completed
-                        </button>
-                      </div>
-                      <p className="lead-details__next-steps-text">
-                        {selectedLeadDetails.ownership || 'Team'} will {selectedLeadDetails.next_steps}
-                      </p>
-                      {(() => {
-                        // Calculate days since next step was created (using updated_at as a proxy)
-                        const lastUpdate = new Date(selectedLeadDetails.updated_at || selectedLeadDetails.outreach_date);
-                        const today = new Date();
-                        const diffTime = Math.abs(today - lastUpdate);
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        
-                        return (
-                          <div className="lead-details__next-steps-days">
-                            📅 Created {diffDays} day{diffDays !== 1 ? 's' : ''} ago
-                          </div>
-                        );
-                      })()}
+                  {/* Update Status Section */}
+                  <div className="lead-details__status-update-section">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <h3 className="lead-details__section-title" style={{ margin: 0 }}>📊 Update Lead Status</h3>
+                      <button
+                        className={showStatusUpdate ? 'lead-details__cancel-btn' : 'lead-details__edit-btn'}
+                        onClick={() => {
+                          setShowStatusUpdate(!showStatusUpdate);
+                          if (!showStatusUpdate) {
+                            setStatusUpdateForm({
+                              stage: selectedLeadDetails.stage || 'Initial Outreach',
+                              notes: '',
+                              next_steps: '',
+                              update_date: new Date().toISOString().split('T')[0]
+                            });
+                          }
+                        }}
+                      >
+                        {showStatusUpdate ? '✖️ Cancel' : '📝 Update Status'}
+                      </button>
                     </div>
-                  )}
+
+                    {showStatusUpdate && (
+                      <form className="lead-details__status-form" onSubmit={handleStatusUpdate}>
+                        <div className="form-section">
+                          <label className="form-label">Update Date</label>
+                          <input
+                            type="date"
+                            className="form-input"
+                            value={statusUpdateForm.update_date}
+                            onChange={(e) => setStatusUpdateForm({...statusUpdateForm, update_date: e.target.value})}
+                          />
+                        </div>
+
+                        <div className="form-section">
+                          <label className="form-label">New Stage *</label>
+                          <select
+                            required
+                            className="form-select"
+                            value={statusUpdateForm.stage}
+                            onChange={(e) => setStatusUpdateForm({...statusUpdateForm, stage: e.target.value, stage_detail: ''})}
+                          >
+                            {stages.map(stage => (
+                              <option key={stage} value={stage}>{stage}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Stage Detail Dropdown - Conditional */}
+                        {stageDetails[statusUpdateForm.stage] && (
+                          <div className="form-section">
+                            <label className="form-label">
+                              {statusUpdateForm.stage === 'Active Lead' ? 'Lead Type *' :
+                               statusUpdateForm.stage === 'Close Won' ? 'Win Reason *' :
+                               'Loss Reason *'}
+                            </label>
+                            <select
+                              required
+                              value={statusUpdateForm.stage_detail}
+                              onChange={(e) => setStatusUpdateForm({...statusUpdateForm, stage_detail: e.target.value})}
+                              className="form-select"
+                            >
+                              <option value="">Select...</option>
+                              {stageDetails[statusUpdateForm.stage].map(detail => (
+                                <option key={detail} value={detail}>{detail}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        <div className="form-section">
+                          <label className="form-label">Activity Notes *</label>
+                          <textarea
+                            required
+                            className="form-textarea"
+                            rows="4"
+                            value={statusUpdateForm.notes}
+                            onChange={(e) => setStatusUpdateForm({...statusUpdateForm, notes: e.target.value})}
+                            placeholder="What happened? Record details about the conversation, meeting, or outreach..."
+                          />
+                        </div>
+
+                        <div className="form-section">
+                          <label className="form-label">Next Steps</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={statusUpdateForm.next_steps}
+                            onChange={(e) => setStatusUpdateForm({...statusUpdateForm, next_steps: e.target.value})}
+                            placeholder="e.g., Follow up next week, Send resources, Schedule demo"
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
+                          <button
+                            type="button"
+                            className="lead-details__cancel-btn"
+                            onClick={() => setShowStatusUpdate(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="lead-details__save-btn"
+                            disabled={loading}
+                          >
+                            {loading ? 'Updating...' : '💾 Update Lead'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+
+                  {/* Next Steps */}
+                  {(() => {
+                    // Parse next_steps array
+                    let nextStepsArray = [];
+                    try {
+                      if (selectedLeadDetails.next_steps) {
+                        nextStepsArray = typeof selectedLeadDetails.next_steps === 'string'
+                          ? JSON.parse(selectedLeadDetails.next_steps)
+                          : selectedLeadDetails.next_steps;
+                      }
+                    } catch (e) {
+                      nextStepsArray = [];
+                    }
+
+                    // Filter only pending (uncompleted) next steps
+                    const pendingSteps = nextStepsArray.filter(step => !step.completed);
+
+                    if (pendingSteps.length === 0) return null;
+
+                    // Helper function to calculate days since creation
+                    const getDaysOld = (createdAt) => {
+                      const created = new Date(createdAt);
+                      const today = new Date();
+                      const diffTime = Math.abs(today - created);
+                      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    };
+
+                    // Helper function to get border color based on age
+                    const getAgeBorderColor = (daysOld) => {
+                      if (daysOld <= 3) return '#10b981'; // Green - Recent
+                      if (daysOld <= 7) return '#f59e0b'; // Orange - Getting old
+                      return '#ef4444'; // Red - Overdue
+                    };
+
+                    return (
+                      <div className="lead-details__next-steps">
+                        <h3 className="lead-details__section-title" style={{ marginBottom: '16px' }}>📌 Pending Next Steps ({pendingSteps.length})</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {pendingSteps.map((step, index) => {
+                            const daysOld = getDaysOld(step.created_at);
+                            const borderColor = getAgeBorderColor(daysOld);
+
+                            return (
+                              <div
+                                key={step.id}
+                                style={{
+                                  padding: '12px 16px',
+                                  backgroundColor: '#f9fafb',
+                                  borderRadius: '8px',
+                                  borderLeft: `4px solid ${borderColor}`,
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'flex-start',
+                                  gap: '12px'
+                                }}
+                              >
+                                <div style={{ flex: 1 }}>
+                                  <p style={{
+                                    margin: '0 0 6px 0',
+                                    fontSize: '14px',
+                                    color: '#374151',
+                                    lineHeight: '1.5',
+                                    fontWeight: '500'
+                                  }}>
+                                    {step.task}
+                                  </p>
+                                  <div style={{
+                                    fontSize: '12px',
+                                    color: '#6b7280',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                  }}>
+                                    <span>📅 Created {daysOld} day{daysOld !== 1 ? 's' : ''} ago</span>
+                                    <span style={{
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      backgroundColor: borderColor,
+                                      color: '#ffffff',
+                                      fontSize: '10px',
+                                      fontWeight: '600',
+                                      textTransform: 'uppercase'
+                                    }}>
+                                      {daysOld <= 3 ? 'Recent' : daysOld <= 7 ? 'Getting Old' : 'Overdue'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  className="lead-details__complete-btn"
+                                  onClick={() => handleCompleteNextStep(step.id, step.task)}
+                                  disabled={loading}
+                                  style={{
+                                    padding: '6px 12px',
+                                    fontSize: '13px',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  ✓ Mark Complete
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Update History */}
                   <div className="lead-details__history">
@@ -1377,7 +2503,47 @@ const AllLeads = () => {
                                       ✏️ Edit
                                     </button>
                                   </div>
-                                  <div className="lead-details__update-content">{update.content}</div>
+                                  <div className="lead-details__update-content">
+                                    {(() => {
+                                      // Check if content contains stage change pattern: "📊 Stage: OldStage → NewStage"
+                                      const stagePattern = /📊 Stage: (.+?) → (.+?)(\n|$)/;
+                                      const match = update.content.match(stagePattern);
+
+                                      if (match) {
+                                        const newStage = match[2];
+                                        const remainingContent = update.content.replace(stagePattern, '').trim();
+
+                                        return (
+                                          <>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                                              <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>📊 Stage:</span>
+                                              <span
+                                                style={{
+                                                  backgroundColor: getStageColor(newStage),
+                                                  color: '#ffffff',
+                                                  padding: '4px 10px',
+                                                  borderRadius: '10px',
+                                                  fontSize: '11px',
+                                                  fontWeight: '600',
+                                                  textTransform: 'uppercase',
+                                                  letterSpacing: '0.3px'
+                                                }}
+                                              >
+                                                {newStage}
+                                              </span>
+                                            </div>
+                                            {remainingContent && (
+                                              <div style={{ color: '#4b5563', lineHeight: '1.6' }}>
+                                                {remainingContent}
+                                              </div>
+                                            )}
+                                          </>
+                                        );
+                                      }
+
+                                      return update.content;
+                                    })()}
+                                  </div>
                                 </>
                               )}
                             </div>
