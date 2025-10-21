@@ -40,6 +40,8 @@ const builderRoutes = require('./routes/builderRoutes');
 console.log('✓ builderRoutes loaded');
 const activityRoutes = require('./routes/activityRoutes');
 console.log('✓ activityRoutes loaded');
+const jobPostingBuilderRoutes = require('./routes/jobPostingBuilderRoutes');
+console.log('✓ jobPostingBuilderRoutes loaded');
 
 // API endpoints
 app.use('/api/auth', authRoutes);
@@ -49,6 +51,7 @@ app.use('/api/job-postings', jobPostingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/builders', builderRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/applications', jobPostingBuilderRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

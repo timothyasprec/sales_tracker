@@ -9,6 +9,9 @@ router.use(authenticateToken);
 // GET all job postings
 router.get('/', jobPostingController.getAllJobPostings);
 
+// POST scrape job posting from URL (must be before /:id route)
+router.post('/scrape-url', jobPostingController.scrapeJobUrl);
+
 // GET job posting by ID
 router.get('/:id', jobPostingController.getJobPostingById);
 

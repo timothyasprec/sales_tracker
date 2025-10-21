@@ -63,24 +63,29 @@ const createOutreach = async (outreachData) => {
     notes,
     response_notes,
     stage,
+    stage_detail,
     ownership,
+    current_owner,
     role_consideration,
     job_description_url,
     aligned_sector,
     source,
     job_title,
     job_posting_url,
-    experience_level
+    experience_level,
+    salary_range,
+    is_shared,
+    shared_date
   } = outreachData;
 
   const query = `
     INSERT INTO outreach (
       staff_user_id, contact_name, contact_title, contact_email, contact_phone,
       company_name, linkedin_url, contact_method, outreach_date,
-      status, notes, response_notes, stage, ownership, role_consideration, job_description_url,
-      aligned_sector, source, job_title, job_posting_url, experience_level
+      status, notes, response_notes, stage, stage_detail, ownership, current_owner, role_consideration, job_description_url,
+      aligned_sector, source, job_title, job_posting_url, experience_level, salary_range, is_shared, shared_date
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
     RETURNING *
   `;
 
@@ -98,14 +103,19 @@ const createOutreach = async (outreachData) => {
     notes,
     response_notes,
     stage,
+    stage_detail || null,
     ownership,
+    current_owner || ownership, // Default current_owner to ownership if not provided
     role_consideration,
     job_description_url,
     JSON.stringify(aligned_sector || []), // Store as JSON string
     JSON.stringify(source || []), // Store as JSON string
     job_title || null,
     job_posting_url || null,
-    experience_level || null
+    experience_level || null,
+    salary_range || null,
+    is_shared || false,
+    shared_date || null
   ];
 
   const result = await pool.query(query, values);
@@ -122,9 +132,9 @@ const updateOutreach = async (id, updateData) => {
   const allowedFields = [
     'contact_name', 'contact_title', 'contact_email', 'contact_phone',
     'company_name', 'linkedin_url', 'contact_method', 'outreach_date',
-    'status', 'notes', 'response_notes', 'stage',
-    'ownership', 'role_consideration', 'job_description_url',
-    'job_title', 'job_posting_url', 'experience_level', 'next_steps'
+    'status', 'notes', 'response_notes', 'stage', 'stage_detail',
+    'ownership', 'current_owner', 'role_consideration', 'job_description_url',
+    'job_title', 'job_posting_url', 'experience_level', 'salary_range', 'is_shared', 'shared_date'
   ];
 
   allowedFields.forEach(field => {
@@ -146,6 +156,16 @@ const updateOutreach = async (id, updateData) => {
   if (updateData.source !== undefined) {
     fields.push(`source = $${paramCount}`);
     values.push(JSON.stringify(updateData.source));
+    paramCount++;
+  }
+
+  // Handle next_steps separately as it needs JSON stringification
+  if (updateData.next_steps !== undefined) {
+    fields.push(`next_steps = $${paramCount}`);
+    // Only stringify if it's not already a string
+    values.push(typeof updateData.next_steps === 'string'
+      ? updateData.next_steps
+      : JSON.stringify(updateData.next_steps));
     paramCount++;
   }
 

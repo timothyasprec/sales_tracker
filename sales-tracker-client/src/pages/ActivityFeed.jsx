@@ -265,15 +265,6 @@ const ActivityFeed = () => {
         >
           Job Postings
         </button>
-        <button
-          className="overview__nav-item"
-          onClick={() => navigate('/builders')}
-        >
-          Builders
-        </button>
-        <button className="overview__nav-item overview__nav-item--active">
-          Activity Feed
-        </button>
       </nav>
 
       <main className="overview__main">

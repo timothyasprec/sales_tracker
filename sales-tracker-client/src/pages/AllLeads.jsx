@@ -816,12 +816,6 @@ const AllLeads = () => {
       </header>
 
       <nav className="overview__nav">
-        <button
-          className="overview__nav-item"
-          onClick={() => navigate('/overview')}
-        >
-          Overview
-        </button>
         <button className="overview__nav-item overview__nav-item--active">
           All Leads
         </button>
@@ -830,18 +824,6 @@ const AllLeads = () => {
           onClick={() => navigate('/job-postings')}
         >
           Job Postings
-        </button>
-        <button
-          className="overview__nav-item"
-          onClick={() => navigate('/builders')}
-        >
-          Builders
-        </button>
-        <button
-          className="overview__nav-item"
-          onClick={() => navigate('/activity')}
-        >
-          Activity Feed
         </button>
       </nav>
 

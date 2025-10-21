@@ -441,15 +441,6 @@ const Builders = () => {
         >
           Job Postings
         </button>
-        <button className="overview__nav-item overview__nav-item--active">
-          Builders
-        </button>
-        <button
-          className="overview__nav-item"
-          onClick={() => navigate('/activity')}
-        >
-          Activity Feed
-        </button>
       </nav>
 
       <main className="overview__main">

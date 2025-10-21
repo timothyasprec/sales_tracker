@@ -537,6 +537,28 @@
   gap: 4px;
 }
 
+.lead-details__info-item--stage {
+  grid-column: 1 / -1;
+  padding: 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.lead-details__info-item--stage .lead-details__label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.lead-details__info-item--stage .lead-details__value {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .lead-details__label {
   font-size: 12px;
   font-weight: 600;
@@ -720,6 +742,70 @@
   border-radius: 16px;
   font-size: 12px;
   font-weight: 500;
+}
+
+/* Update Status Section */
+.lead-details__status-update-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.lead-details__status-form {
+  margin-top: 16px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.lead-details__status-form .form-section {
+  margin-bottom: 16px;
+}
+
+.lead-details__status-form .form-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.lead-details__status-form .form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.lead-details__status-form .form-input,
+.lead-details__status-form .form-select,
+.lead-details__status-form .form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #000000;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.lead-details__status-form .form-input:focus,
+.lead-details__status-form .form-select:focus,
+.lead-details__status-form .form-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.lead-details__status-form .form-textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.5;
+}
+
+.lead-details__status-form .form-textarea::placeholder {
+  color: #9ca3af;
 }
 
 /* Responsive */

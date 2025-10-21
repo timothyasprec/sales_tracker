@@ -97,9 +97,6 @@ const Overview = () => {
       </header>
 
       <nav className="overview__nav">
-        <button className="overview__nav-item overview__nav-item--active">
-          Overview
-        </button>
         <button
           className="overview__nav-item"
           onClick={() => navigate('/leads')}
@@ -111,18 +108,6 @@ const Overview = () => {
           onClick={() => navigate('/job-postings')}
         >
           Job Postings
-        </button>
-        <button
-          className="overview__nav-item"
-          onClick={() => navigate('/builders')}
-        >
-          Builders
-        </button>
-        <button
-          className="overview__nav-item"
-          onClick={() => navigate('/activity')}
-        >
-          Activity Feed
         </button>
       </nav>
 

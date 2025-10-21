@@ -1,4 +1,5 @@
 const jobPostingQueries = require('../queries/jobPostingQueries');
+const jobScraper = require('../services/jobScraper');
 
 // Get all job postings
 const getAllJobPostings = async (req, res) => {
@@ -110,10 +111,37 @@ const deleteJobPosting = async (req, res) => {
   }
 };
 
+// Scrape job posting from URL
+const scrapeJobUrl = async (req, res) => {
+  try {
+    const { url } = req.body;
+
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+
+    const result = await jobScraper.scrapeJobPosting(url);
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    res.json({
+      success: true,
+      data: result.data,
+      source: result.source
+    });
+  } catch (error) {
+    console.error('Scrape job URL error:', error);
+    res.status(500).json({ error: 'Error scraping job posting URL' });
+  }
+};
+
 module.exports = {
   getAllJobPostings,
   getJobPostingById,
   createJobPosting,
   updateJobPosting,
-  deleteJobPosting
+  deleteJobPosting,
+  scrapeJobUrl
 };

@@ -127,17 +127,23 @@ export const jobPostingAPI = {
       body: JSON.stringify(jobPostingData),
     }),
   
-  deleteJobPosting: (id) => 
+  deleteJobPosting: (id) =>
     apiRequest(`/api/job-postings/${id}`, {
       method: 'DELETE',
     }),
-  
-  addBuilder: (id, builderData) => 
+
+  scrapeJobUrl: (url) =>
+    apiRequest('/api/job-postings/scrape-url', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    }),
+
+  addBuilder: (id, builderData) =>
     apiRequest(`/api/job-postings/${id}/builders`, {
       method: 'POST',
       body: JSON.stringify(builderData),
     }),
-  
+
   getBuilders: (id) => apiRequest(`/api/job-postings/${id}/builders`),
 };
 
@@ -172,19 +178,48 @@ export const builderAPI = {
 
 // Activity API calls
 export const activityAPI = {
-  getAllActivities: (limit = 50, offset = 0) => 
+  getAllActivities: (limit = 50, offset = 0) =>
     apiRequest(`/api/activities?limit=${limit}&offset=${offset}`),
-  
-  createActivity: (activityData) => 
+
+  createActivity: (activityData) =>
     apiRequest('/api/activities', {
       method: 'POST',
       body: JSON.stringify(activityData),
     }),
-  
-  getActivitiesByUser: (user_name) => 
+
+  getActivitiesByUser: (user_name) =>
     apiRequest(`/api/activities/user/${user_name}`),
-  
+
   getActivityStats: () => apiRequest('/api/activities/stats'),
+};
+
+// Application API calls (job posting <-> builder relationships)
+export const applicationAPI = {
+  getApplicationsByJobPosting: (jobPostingId) =>
+    apiRequest(`/api/applications/job-posting/${jobPostingId}`),
+
+  getApplicationsByBuilder: (builderName) =>
+    apiRequest(`/api/applications/builder/${encodeURIComponent(builderName)}`),
+
+  getJobPostingStats: (jobPostingId) =>
+    apiRequest(`/api/applications/job-posting/${jobPostingId}/stats`),
+
+  addBuilderToJobPosting: (data) =>
+    apiRequest('/api/applications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateApplicationStatus: (id, data) =>
+    apiRequest(`/api/applications/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteApplication: (id) =>
+    apiRequest(`/api/applications/${id}`, {
+      method: 'DELETE',
+    }),
 };
 
 export default {
@@ -194,5 +229,6 @@ export default {
   jobPostings: jobPostingAPI,
   builders: builderAPI,
   activities: activityAPI,
+  applications: applicationAPI,
 };
 
